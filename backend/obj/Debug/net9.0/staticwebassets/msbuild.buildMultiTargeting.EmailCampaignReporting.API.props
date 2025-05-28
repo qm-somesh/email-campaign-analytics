@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\EmailCampaignReporting.API.props" />
+</Project>
