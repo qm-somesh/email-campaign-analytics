@@ -1,5 +1,7 @@
 using EmailCampaignReporting.API.Configuration;
 using EmailCampaignReporting.API.Services;
+using EmailCampaignReporting.API.Models.DTOs;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,7 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "Email Campaign Reporting API", 
         Version = "v1",
-        Description = "API for Email Campaign Analytics and Reporting"
+        Description = "API for Email Campaign Analytics and Reporting with Natural Language Query Support"
     });
 });
 
@@ -22,7 +24,11 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.Configure<BigQueryOptions>(
     builder.Configuration.GetSection(BigQueryOptions.SectionName));
 
-// Register services - use mock service if credentials are not available
+// Configure LLM options
+builder.Services.Configure<LLMOptions>(
+    builder.Configuration.GetSection(LLMOptions.SectionName));
+
+// Register BigQuery services - use mock service if credentials are not available
 var bigQueryOptions = builder.Configuration.GetSection(BigQueryOptions.SectionName).Get<BigQueryOptions>();
 if (bigQueryOptions?.CredentialsPath != null && 
     !bigQueryOptions.CredentialsPath.Contains("path/to/your") && 
@@ -33,6 +39,23 @@ if (bigQueryOptions?.CredentialsPath != null &&
 else
 {
     builder.Services.AddScoped<IBigQueryService, MockBigQueryService>();
+}
+
+// Register Campaign Query Service
+builder.Services.AddScoped<ICampaignQueryService, CampaignQueryService>();
+
+// Register LLM services - Use enhanced service with rule-based fallback
+var llmOptions = builder.Configuration.GetSection(LLMOptions.SectionName).Get<LLMOptions>();
+if (llmOptions?.ModelPath != null && 
+    !llmOptions.ModelPath.Contains("path/to/your"))
+{
+    // Use regular LLM service for now
+    builder.Services.AddScoped<ILLMService, LLMService>();
+}
+else
+{
+    // Use mock service when model is not available
+    builder.Services.AddScoped<ILLMService, MockLLMService>();
 }
 
 // Add CORS

@@ -1,0 +1,31 @@
+### 🔴 BREAKPOINT TEST - This will hit your breakpoint in NaturalLanguageController.cs line 35
+POST http://localhost:5037/api/naturallanguage/query
+Content-Type: application/json
+
+{
+  "query": "🔴 BREAKPOINT TEST - Show me all campaigns with high click rates",
+  "context": "testing breakpoints in debug mode",
+  "includeDebugInfo": true
+}
+
+### Alternative Breakpoint Test - Different query
+POST http://localhost:5037/api/naturallanguage/query
+Content-Type: application/json
+
+{
+  "query": "Find bounced emails from last week",
+  "context": "debug session",
+  "includeDebugInfo": true
+}
+
+### Test Status Endpoint
+GET http://localhost:5037/api/naturallanguage/status
+
+### Test Examples Endpoint
+GET http://localhost:5037/api/naturallanguage/examples
+
+### Test Campaign Controller (Alternative breakpoint location)
+GET http://localhost:5037/api/campaigns
+
+### Test Dashboard Metrics
+GET http://localhost:5037/api/dashboard/metrics

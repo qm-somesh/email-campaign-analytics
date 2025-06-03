@@ -1,22 +1,23 @@
 {
   "version": "0.2.0",
-  "configurations": [
-    {
+  "configurations": [    {
       "name": "Launch Backend (.NET)",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-backend",
       "program": "${workspaceFolder}/backend/bin/Debug/net9.0/EmailCampaignReporting.API.dll",
-      "args": [],
+      "args": ["--launch-profile", "http"],
       "cwd": "${workspaceFolder}/backend",
       "console": "internalConsole",
       "stopAtEntry": false,
       "serverReadyAction": {
         "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+        "pattern": "\\bNow listening on:\\s+(http://localhost:5037)",
+        "uriFormat": "http://localhost:5037/swagger"
       },
       "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5037"
       },
       "sourceFileMap": {
         "/Views": "${workspaceFolder}/Views"

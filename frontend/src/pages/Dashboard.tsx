@@ -55,6 +55,7 @@ import {
   getEventTypeColor,
   generateChartColors,
 } from '../utils';
+import NaturalLanguageQuery from '../components/NaturalLanguageQuery';
 
 interface MetricCardProps {
   title: string;
@@ -210,12 +211,16 @@ const Dashboard: React.FC = () => {
   }));
 
   const chartColors = generateChartColors(pieChartData.length);
-
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Email Campaign Dashboard
       </Typography>
+
+      {/* Natural Language Query */}
+      <Box sx={{ mb: 4 }}>
+        <NaturalLanguageQuery />
+      </Box>
 
       {/* Key Metrics */}
       <Box display="flex" flexWrap="wrap" gap={3} sx={{ mb: 4 }}>

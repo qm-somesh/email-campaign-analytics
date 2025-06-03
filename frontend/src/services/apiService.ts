@@ -12,7 +12,13 @@ import {
   CampaignFilters,
   RecipientFilters,
   SortOptions,
-  PaginationOptions
+  PaginationOptions,
+  NaturalLanguageQueryRequest,
+  NaturalLanguageQueryResponse,
+  QueryRequestDto,
+  QueryIntent,
+  NaturalLanguageStatus,
+  ExampleQuery
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5037/api';
@@ -182,11 +188,45 @@ export const isApiError = (error: any): boolean => {
   return error.response && error.response.status >= 400;
 };
 
+// Natural Language API
+export const naturalLanguageApi = {
+  // Process a complete natural language query
+  processQuery: async (request: NaturalLanguageQueryRequest): Promise<NaturalLanguageQueryResponse> => {
+    const response = await apiClient.post<NaturalLanguageQueryResponse>('/NaturalLanguage/query', request);
+    return response.data;
+  },
+
+  // Extract intent from a query
+  extractIntent: async (query: string): Promise<QueryIntent> => {
+    const request: QueryRequestDto = { query };
+    const response = await apiClient.post<QueryIntent>('/NaturalLanguage/intent', request);
+    return response.data;
+  },
+
+  // Generate SQL from intent
+  generateSql: async (intent: QueryIntent): Promise<string> => {
+    const response = await apiClient.post<string>('/NaturalLanguage/sql', intent);
+    return response.data;
+  },
+
+  // Get LLM service status
+  getStatus: async (): Promise<NaturalLanguageStatus> => {
+    const response = await apiClient.get<NaturalLanguageStatus>('/NaturalLanguage/status');
+    return response.data;
+  },
+  // Get example queries
+  getExamples: async (): Promise<Record<string, string[]>> => {
+    const response = await apiClient.get<Record<string, string[]>>('/NaturalLanguage/examples');
+    return response.data;
+  }
+};
+
 export default {
   campaignApi,
   dashboardApi,
   emailListApi,
   recipientApi,
+  naturalLanguageApi,
   formatApiError,
   isApiError,
 };

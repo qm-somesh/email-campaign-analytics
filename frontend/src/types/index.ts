@@ -178,3 +178,62 @@ export interface PaginationOptions {
   pageNumber: number;
   pageSize: number;
 }
+
+// Natural Language Query Types
+export interface QueryFilter {
+  field: string;
+  operator: string;
+  value: string;
+}
+
+export interface QueryIntent {
+  queryType: string;
+  action: string;
+  entities: Record<string, any>;
+  filters: QueryFilter[];
+  groupBy: string[];
+  orderBy: string[];
+  limit: number;
+}
+
+export interface NaturalLanguageQueryRequest {
+  query: string;
+  context?: string;
+  includeDebugInfo?: boolean;
+}
+
+export interface QueryRequestDto {
+  query: string;
+}
+
+export interface NaturalLanguageQueryResponse {
+  originalQuery: string;
+  intent: string;
+  generatedSql: string;
+  parameters: Record<string, any>;
+  results: any[];
+  success: boolean;
+  error?: string;
+  debugInfo?: {
+    llmResponse: string;
+    tokensUsed: number;
+    llmProcessingTimeMs: number;
+    sqlExecutionTimeMs: number;
+    confidenceScore: number;
+    warnings: string[];
+  };
+  processingTimeMs: number;
+}
+
+export interface NaturalLanguageStatus {
+  isAvailable: boolean;
+  modelType: string;
+  modelPath?: string;
+  lastHealthCheck: string;
+  capabilities: string[];
+}
+
+export interface ExampleQuery {
+  category: string;
+  examples: string[];
+}
