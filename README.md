@@ -85,7 +85,7 @@ A comprehensive **full-stack email campaign reporting and analytics platform** d
 
 4. **Configuration** (Optional for development)
    
-   Update `backend/appsettings.Development.json` with your BigQuery settings:
+   **BigQuery Configuration** - Update `backend/appsettings.Development.json`:
    ```json
    {
      "BigQuery": {
@@ -94,6 +94,20 @@ A comprehensive **full-stack email campaign reporting and analytics platform** d
        "CredentialsPath": "path/to/service-account-key.json",
        "EmailOutboxTable": "EmailOutbox",
        "EmailStatusTable": "EmailStatus"
+     }
+   }
+   ```
+
+   **SQL Server Configuration** - Add to `backend/appsettings.Development.json`:
+   ```json
+   {
+     "SqlServer": {
+       "ConnectionString": "Server=your-server;Database=your-database;Trusted_Connection=true;",
+       "EmailTriggerTable": "EmailTrigger",
+       "EmailOutboxTable": "EmailOutbox",
+       "WebhookLogsTable": "WebhookLogs",
+       "EmailStatusTable": "EmailStatus",
+       "CommandTimeoutSeconds": 30
      }
    }
    ```
@@ -139,27 +153,49 @@ The API documentation is automatically generated and available at:
 | `/api/dashboard/metrics` | GET | Get overall dashboard metrics |
 | `/api/recipients` | GET | List recipients with filtering |
 | `/api/emaillists` | GET | Get email lists |
+| `/api/emailtriggerreport` | GET | Get email trigger reports with pagination |
+| `/api/emailtriggerreport/strategy/{name}` | GET | Get trigger report by strategy name |
+| `/api/emailtriggerreport/summary` | GET | Get trigger report summary statistics |
+| `/api/emailtriggerreport/strategies` | GET | Get all available strategy names |
 
 ## 🗄️ Database Schema
 
-The application works with two main BigQuery tables:
+The application works with multiple data sources for comprehensive email campaign analytics:
 
-### EmailOutbox Table
+### Google BigQuery Tables
+
+#### EmailOutbox Table
 Contains primary email campaign data including campaigns, recipients, templates, and sending information.
 
-### EmailStatus Table  
+#### EmailStatus Table  
 Tracks email delivery events, engagement metrics, and status updates.
 
 **Relationship**: Connected via `EmailOutboxIdentifier` for comprehensive reporting.
+
+### SQL Server Tables
+
+#### EmailTrigger Table
+Contains email trigger definitions and descriptions for campaign strategies.
+
+#### WebhookLogs Table
+Tracks webhook delivery status and logs for email events.
+
+**Integration**: EmailTriggerService provides specialized reporting for SQL Server-based trigger data with real-time analytics.
 
 ## 🔧 Development
 
 ### Mock Data Service
 
-The application includes a **MockBigQueryService** that provides realistic test data, allowing you to:
-- Develop and test without BigQuery credentials
-- Work with realistic campaign, recipient, and engagement data
-- Demonstrate the application functionality
+The application includes comprehensive mock services that provide realistic test data:
+
+- **MockBigQueryService**: Provides campaign, recipient, and engagement data for BigQuery operations
+- **MockEmailTriggerService**: Provides email trigger reports and statistics for SQL Server operations
+
+This allows you to:
+- Develop and test without external database credentials
+- Work with realistic campaign, recipient, and trigger data
+- Demonstrate the full application functionality
+- Test all API endpoints with sample data
 
 ### Project Structure
 

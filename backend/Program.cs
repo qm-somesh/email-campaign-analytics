@@ -31,6 +31,10 @@ builder.Services.Configure<BigQueryOptions>(
 builder.Services.Configure<LLMOptions>(
     builder.Configuration.GetSection(LLMOptions.SectionName));
 
+// Configure SQL Server options
+builder.Services.Configure<SqlServerOptions>(
+    builder.Configuration.GetSection(SqlServerOptions.SectionName));
+
 // Register BigQuery services - use mock service if credentials are not available
 var bigQueryOptions = builder.Configuration.GetSection(BigQueryOptions.SectionName).Get<BigQueryOptions>();
 if (bigQueryOptions?.CredentialsPath != null && 
@@ -47,24 +51,20 @@ else
 // Register Campaign Query Service
 builder.Services.AddScoped<ICampaignQueryService, CampaignQueryService>();
 
-// Register SQL Server Trigger Service - TODO: Investigate EmailTriggerService registration issues
-var connectionString = builder.Configuration.GetConnectionString("EmailServiceDbContext");
-Console.WriteLine($"Using MockEmailTriggerService for now (connection string available: {!string.IsNullOrEmpty(connectionString)})");
-builder.Services.AddScoped<ISqlServerTriggerService, MockEmailTriggerService>();
-
-// NOTE: The real EmailTriggerService registration is disabled due to build errors
-/*
-if (!string.IsNullOrEmpty(connectionString))
+// Register SQL Server Trigger Service
+var sqlServerOptions = builder.Configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>();
+Console.WriteLine($"SqlServer Configuration - ConnectionString: {sqlServerOptions?.ConnectionString}");
+Console.WriteLine($"SqlServer Configuration - Section found: {sqlServerOptions != null}");
+if (!string.IsNullOrEmpty(sqlServerOptions?.ConnectionString))
 {
-    Console.WriteLine("Using EmailTriggerService with SQL Server connection");
+    Console.WriteLine("✅ Using EmailTriggerService with SQL Server connection");
     builder.Services.AddScoped<ISqlServerTriggerService, EmailTriggerService>();
 }
 else
 {
-    Console.WriteLine("Using MockEmailTriggerService (no connection string available)");
+    Console.WriteLine("⚠️ Using MockEmailTriggerService (no SQL Server connection string available)");
     builder.Services.AddScoped<ISqlServerTriggerService, MockEmailTriggerService>();
 }
-*/
 
 // Register LLM services - Use enhanced service with rule-based fallback
 var llmOptions = builder.Configuration.GetSection(LLMOptions.SectionName).Get<LLMOptions>();

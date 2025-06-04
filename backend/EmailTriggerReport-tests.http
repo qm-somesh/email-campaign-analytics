@@ -1,0 +1,51 @@
+### Email Trigger Report Controller Tests
+# Test file for EmailTriggerReportController endpoints
+# Base URL: http://localhost:5037/api/EmailTriggerReport
+
+### 1. Test GET All Email Trigger Reports (Default pagination)
+GET http://localhost:5037/api/EmailTriggerReport
+Accept: application/json
+
+### 2. Test GET All Email Trigger Reports (Custom pagination - Page 1, Size 10)
+GET http://localhost:5037/api/EmailTriggerReport?pageNumber=1&pageSize=10
+Accept: application/json
+
+### 3. Test GET All Email Trigger Reports (Page 2, Size 5)
+GET http://localhost:5037/api/EmailTriggerReport?pageNumber=2&pageSize=5
+Accept: application/json
+
+### 4. Test GET Email Trigger Report by Strategy Name (Example strategy)
+GET http://localhost:5037/api/EmailTriggerReport/Newsletter Campaign
+Accept: application/json
+
+### 5. Test GET Email Trigger Report by Strategy Name (URL encoded)
+GET http://localhost:5037/api/EmailTriggerReport/Promotional%20Campaign
+Accept: application/json
+
+### 6. Test GET Email Trigger Report by Strategy Name (Non-existent strategy)
+GET http://localhost:5037/api/EmailTriggerReport/NonExistentStrategy
+Accept: application/json
+
+### 7. Test GET Email Trigger Summary
+GET http://localhost:5037/api/EmailTriggerReport/summary
+Accept: application/json
+
+### 8. Test GET Strategy Names List
+GET http://localhost:5037/api/EmailTriggerReport/strategy-names
+Accept: application/json
+
+### 9. Test with Invalid Page Number (should handle gracefully)
+GET http://localhost:5037/api/EmailTriggerReport?pageNumber=0&pageSize=10
+Accept: application/json
+
+### 10. Test with Large Page Size (should handle gracefully)
+GET http://localhost:5037/api/EmailTriggerReport?pageNumber=1&pageSize=1000
+Accept: application/json
+
+### 11. Test with Negative Page Size (should handle gracefully)
+GET http://localhost:5037/api/EmailTriggerReport?pageNumber=1&pageSize=-1
+Accept: application/json
+
+### 12. Test Strategy Name with Special Characters
+GET http://localhost:5037/api/EmailTriggerReport/Test%20Strategy%20%26%20More
+Accept: application/json

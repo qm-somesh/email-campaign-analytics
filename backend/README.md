@@ -1,6 +1,6 @@
 # Email Campaign Reporting API
 
-A .NET 8 Web API for automotive email campaign analytics and reporting, integrated with Google BigQuery.
+A .NET 9 Web API for automotive email campaign analytics and reporting, integrated with Google BigQuery and SQL Server.
 
 ## Features
 
@@ -9,7 +9,10 @@ A .NET 8 Web API for automotive email campaign analytics and reporting, integrat
 - Recipient tracking
 - Real-time dashboard metrics
 - Email event tracking (opens, clicks, bounces, etc.)
+- Email trigger reporting and analytics
 - BigQuery integration for scalable data analytics
+- SQL Server integration for trigger management
+- Dual mock services for development without database credentials
 
 ## API Endpoints
 
@@ -32,6 +35,12 @@ A .NET 8 Web API for automotive email campaign analytics and reporting, integrat
 ### Recipients
 - `GET /api/recipients` - Get all recipients (paginated)
 - `GET /api/recipients/{id}` - Get recipient by ID
+
+### Email Trigger Reports
+- `GET /api/emailtriggerreport` - Get email trigger reports (paginated)
+- `GET /api/emailtriggerreport/strategy/{name}` - Get trigger report by strategy name
+- `GET /api/emailtriggerreport/summary` - Get trigger report summary statistics
+- `GET /api/emailtriggerreport/strategies` - Get all available strategy names
 
 ## Configuration
 
@@ -58,6 +67,34 @@ A .NET 8 Web API for automotive email campaign analytics and reporting, integrat
   }
 }
 ```
+
+### SQL Server Setup
+
+For Email Trigger Reports functionality:
+
+1. Ensure SQL Server is accessible
+2. Create the required tables (EmailTrigger, WebhookLogs, EmailOutbox, EmailStatus)
+3. Update `appsettings.json`:
+
+```json
+{
+  "SqlServer": {
+    "ConnectionString": "Server=your-server;Database=your-database;Trusted_Connection=true;",
+    "EmailTriggerTable": "EmailTrigger",
+    "EmailOutboxTable": "EmailOutbox", 
+    "WebhookLogsTable": "WebhookLogs",
+    "EmailStatusTable": "EmailStatus",
+    "CommandTimeoutSeconds": 30
+  }
+}
+```
+
+### Development Mode
+
+The application automatically detects available services:
+- **BigQuery**: Uses MockBigQueryService if credentials not configured
+- **SQL Server**: Uses MockEmailTriggerService if connection string not configured
+- Both mock services provide realistic sample data for development and testing
 
 ### Running the Application
 
