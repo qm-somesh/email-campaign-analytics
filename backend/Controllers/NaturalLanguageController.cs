@@ -33,13 +33,12 @@ namespace EmailCampaignReporting.API.Controllers
         public async Task<ActionResult<NaturalLanguageQueryResponseDto>> ProcessQuery(
             [FromBody] NaturalLanguageQueryDto request)        {
             try
-            {
-                // 🔴 BREAKPOINT HERE - Add breakpoint on this line to debug incoming requests
+            {                // 🔴 BREAKPOINT HERE - Add breakpoint on this line to debug incoming requests
                 var queryText = request?.Query ?? string.Empty;
                 var timestamp = DateTime.UtcNow;
                 _logger.LogInformation("Processing query at {Timestamp}: '{Query}'", timestamp, queryText);
 
-                if (string.IsNullOrWhiteSpace(request.Query))
+                if (string.IsNullOrWhiteSpace(request?.Query))
                 {
                     return BadRequest("Query cannot be empty");
                 }
@@ -697,10 +696,14 @@ namespace EmailCampaignReporting.API.Controllers
                 if (!response.Success || string.IsNullOrEmpty(response.GeneratedSql))
                 {
                     return BadRequest("Failed to generate valid SQL for the email trigger");
-                }
-
-                // Execute the generated SQL to get the recipient list
+                }                // Execute the generated SQL to get the recipient list
                 var recipientList = await ExecuteGeneratedQuery(response);
+
+                // Ensure we have a valid recipient list
+                if (recipientList == null)
+                {
+                    return BadRequest("Failed to generate recipient list from query");
+                }
 
                 // Trigger the email campaign using the SQL execution results
                 var triggerResult = await _emailTriggerService.TriggerCampaignAsync(recipientList, response.Parameters);

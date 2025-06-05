@@ -322,10 +322,8 @@ namespace EmailCampaignReporting.API.Services
                     { "clickedcount", "SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END)" },
                     { "firstemailsent", "MIN(eo.DateCreated)" },
                     { "lastemailsent", "MAX(eo.DateCreated)" }
-                };
-
-                var sortField = validSortFields.ContainsKey(filter.SortBy?.ToLower() ?? "")
-                    ? validSortFields[filter.SortBy.ToLower()]
+                };                var sortField = validSortFields.ContainsKey(filter.SortBy?.ToLower() ?? "")
+                    ? validSortFields[filter.SortBy?.ToLower() ?? ""]
                     : "et.Description";
 
                 var sortDirection = filter.SortDirection?.ToLower() == "desc" ? "DESC" : "ASC";
@@ -387,7 +385,7 @@ namespace EmailCampaignReporting.API.Services
                     {
                         countCommand.Parameters.Add(new SqlParameter(param.ParameterName, param.SqlDbType, param.Size) { Value = param.Value });
                     }
-                    totalCount = (int)await countCommand.ExecuteScalarAsync();
+                    totalCount = (int)(await countCommand.ExecuteScalarAsync() ?? 0);
                 }
 
                 // Get the actual data
