@@ -21,11 +21,14 @@ namespace EmailCampaignReporting.API.Services
         /// <summary>
         /// Get all available strategy names
         /// </summary>
-        Task<IEnumerable<string>> GetStrategyNamesAsync();
-
-        /// <summary>
+        Task<IEnumerable<string>> GetStrategyNamesAsync();        /// <summary>
         /// Get email trigger reports with flexible filtering and pagination
         /// </summary>
         Task<(IEnumerable<EmailTriggerReportDto> Reports, int TotalCount)> GetEmailTriggerReportsFilteredAsync(EmailTriggerReportFilterDto filter);
+
+        /// <summary>
+        /// Trigger an email campaign based on recipient list and parameters
+        /// </summary>
+        Task<EmailTriggerResponseDto> TriggerCampaignAsync(object recipientList, Dictionary<string, object>? parameters);
     }
 }

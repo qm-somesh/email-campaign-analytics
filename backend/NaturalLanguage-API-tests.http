@@ -1,0 +1,108 @@
+### Email Campaign Reporting - Natural Language API Tests
+### Test endpoints for NaturalLanguageController
+
+# Base URL for local development
+@baseUrl = http://localhost:5037/api/naturallanguage
+
+### 1. Test EmailTrigger Summary Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Show me a summary of email triggers",
+  "includeDebugInfo": true
+}
+
+### 2. Test Top Performers Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "What are the top performing email strategies?",
+  "includeDebugInfo": true
+}
+
+### 3. Test Strategy-Specific Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Show me metrics for Lease Expiration strategy",
+  "includeDebugInfo": true
+}
+
+### 4. Test Recent Reports Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Show me recent email trigger reports",
+  "includeDebugInfo": true
+}
+
+### 5. Test Strategy List Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "List all available email strategies",
+  "includeDebugInfo": true
+}
+
+### 6. Test Best Performers Query
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Show me the best performing email campaigns",
+  "includeDebugInfo": true
+}
+
+### 7. Test Summary with Different Wording
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Give me an overview of email trigger performance",
+  "includeDebugInfo": true
+}
+
+### 8. Test Complex Strategy Name
+POST {{baseUrl}}/triggers/query
+Content-Type: application/json
+
+{
+  "query": "Show metrics for 'Download Coupon But Not Yet Serviced' campaign",
+  "includeDebugInfo": true
+}
+
+### 9. Test Email Trigger Command
+POST {{baseUrl}}/trigger-email
+Content-Type: application/json
+
+{
+  "command": "Send promotional email to customers who have opened emails in the last 30 days"
+}
+
+### 10. Test Original Query Endpoint (for comparison)
+POST {{baseUrl}}/query
+Content-Type: application/json
+
+{
+  "query": "Show me campaign performance for March 2024",
+  "includeDebugInfo": true
+}
+
+### 11. Test Intent Extraction
+POST {{baseUrl}}/intent
+Content-Type: application/json
+
+{
+  "query": "Show me email trigger performance summary"
+}
+
+### 12. Test Service Status
+GET {{baseUrl}}/status
+
+### 13. Test Examples
+GET {{baseUrl}}/examples

@@ -9,15 +9,18 @@ namespace EmailCampaignReporting.API.Controllers
     {
         private readonly ILLMService? _llmService;
         private readonly IBigQueryService _bigQueryService;
+        private readonly ISqlServerTriggerService _emailTriggerService;
         private readonly ILogger<NaturalLanguageController> _logger;
 
         public NaturalLanguageController(
             IBigQueryService bigQueryService,
+            ISqlServerTriggerService emailTriggerService,
             ILogger<NaturalLanguageController> logger,
             ILLMService? llmService = null)
         {
             _llmService = llmService;
             _bigQueryService = bigQueryService;
+            _emailTriggerService = emailTriggerService;
             _logger = logger;
         }
 
@@ -302,7 +305,413 @@ namespace EmailCampaignReporting.API.Controllers
                 overall_open_rate = 28.5,
                 overall_click_rate = 18.7,
                 period = "Last 30 days"
+            };        }
+
+        /// <summary>
+        /// Process natural language queries specifically for EmailTrigger operations
+        /// </summary>
+        /// <param name="request">The natural language query request</param>
+        /// <returns>EmailTrigger-specific query results with extracted intent and data</returns>
+        [HttpPost("triggers/query")]
+        public async Task<ActionResult<EmailTriggerNaturalLanguageResponseDto>> ProcessEmailTriggerQuery(
+            [FromBody] NaturalLanguageQueryDto request)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var response = new EmailTriggerNaturalLanguageResponseDto
+            {
+                OriginalQuery = request?.Query ?? string.Empty,
+                Success = false
             };
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request?.Query))
+                {
+                    return BadRequest("Query cannot be empty");
+                }
+
+                _logger.LogInformation("Processing EmailTrigger natural language query: {Query}", request.Query);
+
+                // Initialize debug info if requested
+                if (request.IncludeDebugInfo)
+                {
+                    response.DebugInfo = new EmailTriggerQueryDebugInfo
+                    {
+                        ProcessingMethod = "rule-based",
+                        ExtractedFilters = new Dictionary<string, object>(),
+                        Warnings = new List<string>(),
+                        AdditionalInfo = new Dictionary<string, object>()
+                    };
+                }
+
+                // Try rule-based processing first for common EmailTrigger queries
+                var ruleBasedSuccess = await ProcessEmailTriggerRuleBasedQuery(request.Query, response);
+                
+                if (ruleBasedSuccess)
+                {
+                    response.Success = true;
+                    response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
+                    return Ok(response);
+                }
+
+                // Fallback to LLM processing if rule-based fails
+                if (_llmService != null)
+                {
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ProcessingMethod = "LLM";
+                        response.DebugInfo.Warnings.Add("Rule-based processing failed, using LLM");
+                    }
+
+                    await ProcessEmailTriggerLLMQuery(request.Query, response, request.Context);
+                }
+                else
+                {
+                    // Final fallback to mock data
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ProcessingMethod = "fallback";
+                        response.DebugInfo.Warnings.Add("LLM service unavailable, using fallback data");
+                    }
+                    
+                    await ProcessEmailTriggerFallbackQuery(request.Query, response);
+                }
+
+                response.Success = true;
+                response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing EmailTrigger natural language query: {Query}", request?.Query);
+                
+                response.Error = $"Error processing query: {ex.Message}";
+                response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
+        /// Process EmailTrigger queries using rule-based logic for common patterns
+        /// </summary>
+        private async Task<bool> ProcessEmailTriggerRuleBasedQuery(string query, EmailTriggerNaturalLanguageResponseDto response)
+        {
+            var queryLower = query.ToLowerInvariant().Trim();
+            
+            try
+            {
+                // Summary queries
+                if (queryLower.Contains("summary") || queryLower.Contains("overview") || queryLower.Contains("total"))
+                {
+                    response.Intent = "summary";
+                    response.Explanation = "Getting email trigger performance summary";
+                    response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerSummaryAsync";
+                    }
+                    
+                    return true;
+                }
+
+                // Strategy-specific queries
+                var strategyMatch = System.Text.RegularExpressions.Regex.Match(
+                    queryLower, 
+                    @"strategy\s+[""']?([^""'\s]+)[""']?|campaign\s+[""']?([^""'\s]+)[""']?|for\s+[""']?([^""'\s]+)[""']?"
+                );
+                
+                if (strategyMatch.Success)
+                {
+                    var strategyName = strategyMatch.Groups[1].Value ?? 
+                                     strategyMatch.Groups[2].Value ?? 
+                                     strategyMatch.Groups[3].Value;
+                    
+                    if (!string.IsNullOrEmpty(strategyName))
+                    {
+                        response.Intent = "strategy";
+                        response.Explanation = $"Getting metrics for strategy: {strategyName}";
+                        
+                        var strategyReport = await _emailTriggerService.GetEmailTriggerReportByStrategyNameAsync(strategyName);
+                        if (strategyReport != null)
+                        {
+                            response.TriggerReports = new[] { strategyReport };
+                        }
+                        else
+                        {
+                            // Get available strategies to help user
+                            response.AvailableStrategies = await _emailTriggerService.GetStrategyNamesAsync();
+                            response.Explanation = $"Strategy '{strategyName}' not found. Available strategies listed.";
+                        }
+                        
+                        if (response.DebugInfo != null)
+                        {
+                            response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportByStrategyNameAsync";
+                            response.DebugInfo.ExtractedFilters!["strategyName"] = strategyName;
+                        }
+                        
+                        return true;
+                    }
+                }
+
+                // List all strategies
+                if (queryLower.Contains("strategies") || queryLower.Contains("campaigns") || queryLower.Contains("list"))
+                {
+                    response.Intent = "list_strategies";
+                    response.Explanation = "Getting all available strategy names";
+                    response.AvailableStrategies = await _emailTriggerService.GetStrategyNamesAsync();
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetStrategyNamesAsync";
+                    }
+                    
+                    return true;
+                }
+
+                // Top performers or best queries
+                if (queryLower.Contains("top") || queryLower.Contains("best") || queryLower.Contains("highest"))
+                {
+                    response.Intent = "top_performers";
+                    response.Explanation = "Getting top performing email triggers";
+                      var filter = new EmailTriggerReportFilterDto
+                    {
+                        PageSize = 10,
+                        SortBy = "ClickRate",
+                        SortDirection = "desc"
+                    };
+                    
+                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
+                    response.TriggerReports = reports;
+                    response.TotalCount = totalCount;
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync";                        response.DebugInfo.ExtractedFilters!["sortBy"] = "ClickRate";
+                        response.DebugInfo.ExtractedFilters["sortDirection"] = "desc";
+                    }
+                    
+                    return true;
+                }
+
+                // Recent reports
+                if (queryLower.Contains("recent") || queryLower.Contains("latest") || queryLower.Contains("new"))
+                {
+                    response.Intent = "recent";
+                    response.Explanation = "Getting recent email trigger reports";
+                    
+                    var reports = await _emailTriggerService.GetEmailTriggerReportsAsync(pageSize: 20, offset: 0);
+                    response.TriggerReports = reports;
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsAsync";
+                        response.DebugInfo.ExtractedFilters!["pageSize"] = 20;
+                    }
+                    
+                    return true;
+                }
+
+                return false; // No rule matched
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error in rule-based processing for EmailTrigger query");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Process EmailTrigger queries using LLM service
+        /// </summary>
+        private async Task<bool> ProcessEmailTriggerLLMQuery(string query, EmailTriggerNaturalLanguageResponseDto response, string? context)
+        {
+            try
+            {
+                // Create EmailTrigger-specific context for LLM
+                var emailTriggerContext = $"""
+                    You are analyzing email trigger reports. Available operations:
+                    - Summary: Overall email trigger performance statistics
+                    - Strategy lookup: Get specific strategy performance by name  
+                    - Filtered reports: Get reports with filters (date, performance metrics)
+                    - Strategy list: Get all available strategy names
+                    - Top performers: Get best performing strategies
+                    
+                    Context: {context ?? "email_triggers"}
+                    """;
+
+                var llmResponse = await _llmService!.ProcessQueryAsync(query, emailTriggerContext, false);
+                
+                if (llmResponse.Success)
+                {
+                    response.Intent = llmResponse.Intent;
+                    response.GeneratedSql = llmResponse.GeneratedSql;
+                    response.Explanation = llmResponse.Parameters?.GetValueOrDefault("explanation")?.ToString();
+                    
+                    // Map LLM intent to EmailTrigger service calls
+                    await MapLLMIntentToEmailTriggerService(llmResponse, response);
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error in LLM processing for EmailTrigger query");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Map LLM response intent to specific EmailTrigger service calls
+        /// </summary>
+        private async Task MapLLMIntentToEmailTriggerService(NaturalLanguageQueryResponseDto llmResponse, EmailTriggerNaturalLanguageResponseDto response)
+        {
+            try
+            {
+                switch (llmResponse.Intent?.ToLowerInvariant())
+                {
+                    case "summary":
+                    case "metrics":
+                        response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+                        break;
+                        
+                    case "campaigns":
+                    case "strategy":
+                        // Try to extract strategy name from parameters or SQL
+                        var strategyName = ExtractStrategyNameFromLLMResponse(llmResponse);
+                        if (!string.IsNullOrEmpty(strategyName))
+                        {
+                            var report = await _emailTriggerService.GetEmailTriggerReportByStrategyNameAsync(strategyName);
+                            if (report != null)
+                            {
+                                response.TriggerReports = new[] { report };
+                            }
+                        }
+                        else
+                        {
+                            // Default to getting recent reports
+                            response.TriggerReports = await _emailTriggerService.GetEmailTriggerReportsAsync();
+                        }
+                        break;
+                        
+                    case "recipients":
+                    case "events":
+                    default:
+                        // Default to getting recent reports with summary
+                        response.TriggerReports = await _emailTriggerService.GetEmailTriggerReportsAsync(pageSize: 10);
+                        response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+                        break;
+                }
+                
+                if (response.DebugInfo != null)
+                {
+                    response.DebugInfo.ServiceMethodCalled = $"Mapped from LLM intent: {llmResponse.Intent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error mapping LLM intent to EmailTrigger service");
+                // Fallback to summary
+                response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+            }
+        }
+
+        /// <summary>
+        /// Extract strategy name from LLM response parameters or SQL
+        /// </summary>
+        private string? ExtractStrategyNameFromLLMResponse(NaturalLanguageQueryResponseDto llmResponse)
+        {
+            // Try to extract from parameters first
+            if (llmResponse.Parameters?.ContainsKey("strategyName") == true)
+            {
+                return llmResponse.Parameters["strategyName"]?.ToString();
+            }
+            
+            // Try to extract from SQL WHERE clauses
+            if (!string.IsNullOrEmpty(llmResponse.GeneratedSql))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(
+                    llmResponse.GeneratedSql, 
+                    @"StrategyName\s*=\s*['""]([^'""]+)['""]", 
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+                
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// Provide fallback responses when both rule-based and LLM processing fail
+        /// </summary>
+        private async Task ProcessEmailTriggerFallbackQuery(string query, EmailTriggerNaturalLanguageResponseDto response)
+        {
+            response.Intent = "fallback";
+            response.Explanation = "Provided fallback data due to processing limitations";
+            
+            // Provide a basic summary as fallback
+            try
+            {
+                response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+                response.TriggerReports = await _emailTriggerService.GetEmailTriggerReportsAsync(pageSize: 5);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting fallback data for EmailTrigger query");
+                response.Error = "Unable to retrieve data";
+            }
+        }
+
+        /// <summary>
+        /// Trigger an email campaign based on natural language command
+        /// </summary>
+        /// <param name="request">The request containing the natural language command</param>
+        /// <returns>Result of the email trigger operation</returns>
+        [HttpPost("trigger-email")]
+        public async Task<ActionResult<EmailTriggerResponseDto>> TriggerEmailCampaign(
+            [FromBody] EmailTriggerRequestDto request)
+        {            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Command))
+                {
+                    return BadRequest("Command cannot be empty");
+                }
+
+                if (_llmService == null)
+                {
+                    return BadRequest("LLM service is not available");
+                }
+
+                // Log the received command
+                _logger.LogInformation("Received email trigger command: {Command}", request.Command);
+
+                // Process the command using LLM service to extract intent and parameters
+                var response = await _llmService.ProcessQueryAsync(request.Command, null, false);
+
+                if (!response.Success || string.IsNullOrEmpty(response.GeneratedSql))
+                {
+                    return BadRequest("Failed to generate valid SQL for the email trigger");
+                }
+
+                // Execute the generated SQL to get the recipient list
+                var recipientList = await ExecuteGeneratedQuery(response);
+
+                // Trigger the email campaign using the SQL execution results
+                var triggerResult = await _emailTriggerService.TriggerCampaignAsync(recipientList, response.Parameters);
+
+                return Ok(triggerResult);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error triggering email campaign");
+                return StatusCode(500, "Failed to trigger email campaign");
+            }
         }
     }
 }

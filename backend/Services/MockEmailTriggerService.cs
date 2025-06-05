@@ -240,12 +240,46 @@ namespace EmailCampaignReporting.API.Services
                     DeliveredCount = 1045,
                     BouncedCount = 55,
                     OpenedCount = 418,
-                    ClickedCount = 104,
-                    ComplainedCount = 7,
+                    ClickedCount = 104,                    ComplainedCount = 7,
                     UnsubscribedCount = 18,
                     FirstEmailSent = baseDate.AddDays(15),
                     LastEmailSent = DateTime.UtcNow.AddHours(-4)
                 }
+            };
+        }
+
+        public async Task<EmailTriggerResponseDto> TriggerCampaignAsync(object recipientList, Dictionary<string, object>? parameters)
+        {
+            await Task.Delay(100); // Simulate processing delay
+            
+            var campaignId = $"MOCK-{Guid.NewGuid().ToString()[..8]}";
+            var recipientCount = 0;
+            
+            // Simulate recipient count calculation
+            if (recipientList is IEnumerable<object> enumerable)
+            {
+                recipientCount = enumerable.Count();
+            }
+            else if (recipientList is string)
+            {
+                // Mock: Random recipient count for demo
+                var random = new Random();
+                recipientCount = random.Next(50, 500);
+            }
+            else
+            {
+                recipientCount = 100; // Default mock count
+            }
+            
+            var explanation = parameters?.GetValueOrDefault("explanation")?.ToString() ?? "Mock email campaign triggered";
+            
+            return new EmailTriggerResponseDto
+            {
+                Success = true,
+                CampaignId = campaignId,
+                RecipientCount = recipientCount,
+                Message = $"Mock campaign '{campaignId}' triggered successfully for {recipientCount} recipients. {explanation}",
+                TriggeredAt = DateTime.UtcNow
             };
         }
     }

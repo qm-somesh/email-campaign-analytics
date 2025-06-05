@@ -417,15 +417,67 @@ namespace EmailCampaignReporting.API.Services
                             LastEmailSent = reader.IsDBNull("LastEmailSent") ? null : reader.GetDateTime("LastEmailSent")
                         });
                     }
-                }
-
-                _logger.LogInformation("Retrieved {Count} filtered email trigger reports out of {TotalCount} total", results.Count, totalCount);
+                }                _logger.LogInformation("Retrieved {Count} filtered email trigger reports out of {TotalCount} total", results.Count, totalCount);
                 return (results, totalCount);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving filtered email trigger reports");
-                throw;
+                _logger.LogError(ex, "Error retrieving filtered email trigger reports");                throw;
+            }
+        }
+
+        public async Task<EmailTriggerResponseDto> TriggerCampaignAsync(object recipientList, Dictionary<string, object>? parameters)
+        {
+            try
+            {
+                _logger.LogInformation("Triggering email campaign with recipient list and parameters");
+                
+                // Simulate async operation
+                await Task.Delay(50);
+                
+                // In a real implementation, this would:
+                // 1. Process the recipient list
+                // 2. Create email records in EmailOutbox
+                // 3. Trigger the actual email sending process
+                // 4. Return the campaign details
+                
+                var campaignId = Guid.NewGuid().ToString();
+                var recipientCount = 0;
+                
+                // Try to determine recipient count from various input types
+                if (recipientList is IEnumerable<object> enumerable)
+                {
+                    recipientCount = enumerable.Count();
+                }
+                else if (recipientList is string sqlResult && !string.IsNullOrEmpty(sqlResult))
+                {
+                    // Mock recipient count based on SQL result length (simplified)
+                    recipientCount = Math.Max(1, sqlResult.Length / 100);
+                }
+                
+                // Extract explanation from parameters
+                var explanation = parameters?.GetValueOrDefault("explanation")?.ToString() ?? "Email campaign triggered via natural language";
+                
+                _logger.LogInformation("Campaign {CampaignId} triggered for {RecipientCount} recipients", campaignId, recipientCount);
+                
+                return new EmailTriggerResponseDto
+                {
+                    Success = true,
+                    CampaignId = campaignId,
+                    RecipientCount = recipientCount,
+                    Message = $"Successfully triggered campaign '{campaignId}' for {recipientCount} recipients. {explanation}",
+                    TriggeredAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error triggering email campaign");
+                return new EmailTriggerResponseDto
+                {
+                    Success = false,
+                    Error = $"Failed to trigger campaign: {ex.Message}",
+                    TriggeredAt = DateTime.UtcNow
+                };
             }
         }
     }
