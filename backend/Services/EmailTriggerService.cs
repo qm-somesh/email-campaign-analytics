@@ -20,33 +20,31 @@ namespace EmailCampaignReporting.API.Services
         public async Task<IEnumerable<EmailTriggerReportDto>> GetEmailTriggerReportsAsync(int pageSize = 50, int offset = 0)
         {
             try
-            {
-                const string sql = @"
+            {                const string sql = @"
                     SELECT 
-   
-    et.Description AS StrategyName,
-   
-    COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails,
-    SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount,
-    SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount,
-    SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount,
-    SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount,
-    SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount,
-    SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount,
-    MIN(eo.DateCreated) AS FirstEmailSent,
-    MAX(eo.DateCreated) AS LastEmailSent
-FROM 
-    EmailTrigger et
-    LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-    LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
-    LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
-WHERE 
-    1 = 1
-GROUP BY 
-    et.Description
-ORDER BY et.Description
-OFFSET @Offset ROWS
-FETCH NEXT @PageSize ROWS ONLY";
+                        et.Description AS StrategyName,
+                        COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails,
+                        SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount,
+                        SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount,
+                        SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount,
+                        SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount,
+                        SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount,
+                        SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount,
+                        MIN(eo.DateCreated) AS FirstEmailSent,
+                        MAX(eo.DateCreated) AS LastEmailSent
+                    FROM 
+                        EmailTrigger et
+                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
+                    WHERE 
+                        et.IsActive = 1
+                    GROUP BY 
+                        et.Description
+                    ORDER BY 
+                        et.Description
+                    OFFSET @Offset ROWS
+                    FETCH NEXT @PageSize ROWS ONLY";
 
                 var formattedSql = string.Format(sql, _sqlServerOptions.EmailOutboxTable, _sqlServerOptions.EmailStatusTable);
                 var results = new List<EmailTriggerReportDto>();
@@ -90,23 +88,30 @@ FETCH NEXT @PageSize ROWS ONLY";
         public async Task<EmailTriggerReportDto?> GetEmailTriggerReportByStrategyNameAsync(string strategyName)
         {
             try
-            {
-                const string sql = @"
+            {                const string sql = @"
                     SELECT 
-                        e.StrategyName,
-                        COUNT(e.EmailOutboxId) as TotalEmails,
-                        SUM(CASE WHEN s.Status = 'delivered' THEN 1 ELSE 0 END) as DeliveredCount,
-                        SUM(CASE WHEN s.Status = 'failed' OR s.Status = 'bounced' THEN 1 ELSE 0 END) as BouncedCount,
-                        SUM(CASE WHEN s.Status = 'opened' THEN 1 ELSE 0 END) as OpenedCount,
-                        SUM(CASE WHEN s.Status = 'clicked' THEN 1 ELSE 0 END) as ClickedCount,
-                        SUM(CASE WHEN s.Status = 'complained' THEN 1 ELSE 0 END) as ComplainedCount,
-                        SUM(CASE WHEN s.Status = 'unsubscribed' THEN 1 ELSE 0 END) as UnsubscribedCount,
-                        MIN(e.DateCreated) as FirstEmailSent,
-                        MAX(e.DateCreated) as LastEmailSent
-                    FROM [{0}] e
-                    LEFT JOIN [{1}] s ON e.EmailOutboxIdentifier = s.EmailOutboxIdentifier
-                    WHERE e.StrategyName = @StrategyName
-                    GROUP BY e.StrategyName";
+                        et.Description AS StrategyName,
+                        COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails,
+                        SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount,
+                        SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount,
+                        SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount,
+                        SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount,
+                        SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount,
+                        SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount,
+                        MIN(eo.DateCreated) AS FirstEmailSent,
+                        MAX(eo.DateCreated) AS LastEmailSent
+                    FROM 
+                        EmailTrigger et
+                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
+                    WHERE 
+                        et.Description = @StrategyName 
+                        AND et.IsActive = 1
+                    GROUP BY 
+                        et.Description
+                    ORDER BY 
+                        et.Description";
 
                 var formattedSql = string.Format(sql, _sqlServerOptions.EmailOutboxTable, _sqlServerOptions.EmailStatusTable);
 
@@ -151,21 +156,25 @@ FETCH NEXT @PageSize ROWS ONLY";
         public async Task<EmailTriggerReportDto> GetEmailTriggerSummaryAsync()
         {
             try
-            {
-                const string sql = @"
+            {                const string sql = @"
                     SELECT 
-                        'Summary' as StrategyName,
-                        COUNT(e.EmailOutboxId) as TotalEmails,
-                        SUM(CASE WHEN s.Status = 'delivered' THEN 1 ELSE 0 END) as DeliveredCount,
-                        SUM(CASE WHEN s.Status = 'failed' OR s.Status = 'bounced' THEN 1 ELSE 0 END) as BouncedCount,
-                        SUM(CASE WHEN s.Status = 'opened' THEN 1 ELSE 0 END) as OpenedCount,
-                        SUM(CASE WHEN s.Status = 'clicked' THEN 1 ELSE 0 END) as ClickedCount,
-                        SUM(CASE WHEN s.Status = 'complained' THEN 1 ELSE 0 END) as ComplainedCount,
-                        SUM(CASE WHEN s.Status = 'unsubscribed' THEN 1 ELSE 0 END) as UnsubscribedCount,
-                        MIN(e.DateCreated) as FirstEmailSent,
-                        MAX(e.DateCreated) as LastEmailSent
-                    FROM [{0}] e
-                    LEFT JOIN [{1}] s ON e.EmailOutboxIdentifier = s.EmailOutboxIdentifier";
+                        'Summary' AS StrategyName,
+                        COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails,
+                        SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount,
+                        SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount,
+                        SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount,
+                        SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount,
+                        SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount,
+                        SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount,
+                        MIN(eo.DateCreated) AS FirstEmailSent,
+                        MAX(eo.DateCreated) AS LastEmailSent
+                    FROM 
+                        EmailTrigger et
+                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
+                    WHERE 
+                        et.IsActive = 1";
 
                 var formattedSql = string.Format(sql, _sqlServerOptions.EmailOutboxTable, _sqlServerOptions.EmailStatusTable);
 
@@ -209,12 +218,15 @@ FETCH NEXT @PageSize ROWS ONLY";
         public async Task<IEnumerable<string>> GetStrategyNamesAsync()
         {
             try
-            {
-                const string sql = @"
-                    SELECT DISTINCT e.StrategyName
-                    FROM [{0}] e
-                    WHERE e.StrategyName IS NOT NULL AND e.StrategyName != ''
-                    ORDER BY e.StrategyName";
+            {                const string sql = @"
+                    SELECT DISTINCT 
+                        et.Description AS StrategyName
+                    FROM 
+                        EmailTrigger et
+                    WHERE 
+                        et.IsActive = 1
+                    ORDER BY 
+                        et.Description";
 
                 var formattedSql = string.Format(sql, _sqlServerOptions.EmailOutboxTable);
                 var results = new List<string>();
