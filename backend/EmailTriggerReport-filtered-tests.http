@@ -1,0 +1,63 @@
+### Test EmailTriggerReport Filtered API
+
+@baseUrl = http://localhost:5037/api/EmailTriggerReport
+
+### 1. Get filtered reports with strategy name filter
+GET {{baseUrl}}/filtered?strategyName=promotional&pageSize=10
+Accept: application/json
+
+### 2. Get filtered reports with date range filter
+GET {{baseUrl}}/filtered?firstEmailSentFrom=2024-01-01&firstEmailSentTo=2024-12-31&pageSize=5
+Accept: application/json
+
+### 3. Get filtered reports with numeric filters
+GET {{baseUrl}}/filtered?minTotalEmails=100&minDeliveredCount=50&pageSize=10
+Accept: application/json
+
+### 4. Get filtered reports with sorting (descending by total emails)
+GET {{baseUrl}}/filtered?sortBy=TotalEmails&sortDirection=desc&pageSize=10
+Accept: application/json
+
+### 5. Get filtered reports with multiple filters
+GET {{baseUrl}}/filtered?strategyName=newsletter&minTotalEmails=50&sortBy=OpenedCount&sortDirection=desc&pageNumber=1&pageSize=5
+Accept: application/json
+
+### 6. Get filtered reports with invalid date range (should return 400)
+GET {{baseUrl}}/filtered?firstEmailSentFrom=2024-12-31&firstEmailSentTo=2024-01-01
+Accept: application/json
+
+### 7. Get filtered reports with invalid page number (should return 400)
+GET {{baseUrl}}/filtered?pageNumber=0
+Accept: application/json
+
+### 8. Get filtered reports with too large page size (should return 400)
+GET {{baseUrl}}/filtered?pageSize=2000
+Accept: application/json
+
+### 9. Get filtered reports with all available sort fields
+GET {{baseUrl}}/filtered?sortBy=StrategyName&pageSize=3
+Accept: application/json
+
+### 10. Get filtered reports sorted by DeliveredCount
+GET {{baseUrl}}/filtered?sortBy=DeliveredCount&sortDirection=desc&pageSize=5
+Accept: application/json
+
+### 11. Get filtered reports sorted by OpenedCount
+GET {{baseUrl}}/filtered?sortBy=OpenedCount&sortDirection=desc&pageSize=5
+Accept: application/json
+
+### 12. Get filtered reports sorted by ClickedCount
+GET {{baseUrl}}/filtered?sortBy=ClickedCount&sortDirection=desc&pageSize=5
+Accept: application/json
+
+### 13. Get filtered reports with complex filtering
+GET {{baseUrl}}/filtered?minTotalEmails=75&minOpenedCount=25&minClickedCount=10&sortBy=TotalEmails&sortDirection=desc&pageSize=10
+Accept: application/json
+
+### 14. Get filtered reports with no filters (all data)
+GET {{baseUrl}}/filtered?pageSize=20
+Accept: application/json
+
+### 15. Test pagination (page 2)
+GET {{baseUrl}}/filtered?pageNumber=2&pageSize=5
+Accept: application/json

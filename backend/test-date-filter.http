@@ -1,0 +1,20 @@
+### Test basic filtered endpoint
+GET http://localhost:5037/api/EmailTriggerReport/filtered?pageSize=2
+
+### Test strategy name filter
+GET http://localhost:5037/api/EmailTriggerReport/filtered?strategyName=Download&pageSize=2
+
+### Test numeric filter (minimum total emails)
+GET http://localhost:5037/api/EmailTriggerReport/filtered?minTotalEmails=1&pageSize=2
+
+### Test date range filter (2024)
+GET http://localhost:5037/api/EmailTriggerReport/filtered?firstEmailSentFrom=2024-01-01T00:00:00&firstEmailSentTo=2024-12-31T23:59:59&pageSize=2
+
+### Test date range filter (2025)
+GET http://localhost:5037/api/EmailTriggerReport/filtered?firstEmailSentFrom=2025-01-01T00:00:00&firstEmailSentTo=2025-12-31T23:59:59&pageSize=2
+
+### Test sorting
+GET http://localhost:5037/api/EmailTriggerReport/filtered?sortBy=totalEmails&sortDirection=desc&pageSize=2
+
+### Test combined filters
+GET http://localhost:5037/api/EmailTriggerReport/filtered?strategyName=Download&minTotalEmails=1&pageSize=2

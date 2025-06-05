@@ -65,6 +65,103 @@ namespace EmailCampaignReporting.API.Services
             return _mockData.Select(x => x.StrategyName).ToList();
         }
 
+        public async Task<(IEnumerable<EmailTriggerReportDto> Reports, int TotalCount)> GetEmailTriggerReportsFilteredAsync(EmailTriggerReportFilterDto filter)
+        {
+            _logger.LogInformation("Mock: Getting filtered email trigger reports");
+            
+            await Task.Delay(100); // Simulate async operation
+            
+            var filteredData = _mockData.AsQueryable();
+
+            // Apply strategy name filter
+            if (!string.IsNullOrWhiteSpace(filter.StrategyName))
+            {
+                filteredData = filteredData.Where(x => x.StrategyName.Contains(filter.StrategyName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Apply date range filters
+            if (filter.FirstEmailSentFrom.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.FirstEmailSent >= filter.FirstEmailSentFrom.Value);
+            }            if (filter.FirstEmailSentTo.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.FirstEmailSent <= filter.FirstEmailSentTo.Value);
+            }
+
+            // Apply numeric filters
+            if (filter.MinTotalEmails.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.TotalEmails >= filter.MinTotalEmails.Value);
+            }
+
+            if (filter.MaxTotalEmails.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.TotalEmails <= filter.MaxTotalEmails.Value);
+            }
+
+            if (filter.MinDeliveredCount.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.DeliveredCount >= filter.MinDeliveredCount.Value);
+            }
+
+            if (filter.MinOpenedCount.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.OpenedCount >= filter.MinOpenedCount.Value);
+            }
+
+            if (filter.MinClickedCount.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.ClickedCount >= filter.MinClickedCount.Value);
+            }            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(filter.SortBy))
+            {
+                var isDescending = filter.SortDirection?.ToLower() == "desc";
+                
+                switch (filter.SortBy.ToLower())
+                {
+                    case "strategyname":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.StrategyName) : filteredData.OrderBy(x => x.StrategyName);
+                        break;
+                    case "totalemails":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.TotalEmails) : filteredData.OrderBy(x => x.TotalEmails);
+                        break;
+                    case "deliveredcount":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.DeliveredCount) : filteredData.OrderBy(x => x.DeliveredCount);
+                        break;
+                    case "bouncedcount":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.BouncedCount) : filteredData.OrderBy(x => x.BouncedCount);
+                        break;
+                    case "openedcount":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.OpenedCount) : filteredData.OrderBy(x => x.OpenedCount);
+                        break;
+                    case "clickedcount":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.ClickedCount) : filteredData.OrderBy(x => x.ClickedCount);
+                        break;
+                    case "firstemailsent":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.FirstEmailSent) : filteredData.OrderBy(x => x.FirstEmailSent);
+                        break;
+                    case "lastemailsent":
+                        filteredData = isDescending ? filteredData.OrderByDescending(x => x.LastEmailSent) : filteredData.OrderBy(x => x.LastEmailSent);
+                        break;
+                    default:
+                        filteredData = filteredData.OrderBy(x => x.StrategyName);
+                        break;
+                }
+            }
+
+            var totalCount = filteredData.Count();
+            var offset = (filter.PageNumber - 1) * filter.PageSize;
+            
+            var pagedResults = filteredData
+                .Skip(offset)
+                .Take(filter.PageSize)
+                .ToList();
+
+            _logger.LogInformation("Mock: Returning {ResultCount} filtered results out of {TotalCount} total", pagedResults.Count, totalCount);
+            
+            return (pagedResults, totalCount);
+        }
+
         private List<EmailTriggerReportDto> GenerateMockData()
         {
             var baseDate = DateTime.UtcNow.AddDays(-30);

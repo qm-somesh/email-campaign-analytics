@@ -3,8 +3,7 @@ using EmailCampaignReporting.API.Models.DTOs;
 namespace EmailCampaignReporting.API.Services
 {
     public interface ISqlServerTriggerService
-    {
-        /// <summary>
+    {        /// <summary>
         /// Get all email trigger reports with pagination
         /// </summary>
         Task<IEnumerable<EmailTriggerReportDto>> GetEmailTriggerReportsAsync(int pageSize = 50, int offset = 0);
@@ -18,10 +17,15 @@ namespace EmailCampaignReporting.API.Services
         /// Get summary statistics for all email triggers
         /// </summary>
         Task<EmailTriggerReportDto> GetEmailTriggerSummaryAsync();
-
+        
         /// <summary>
         /// Get all available strategy names
         /// </summary>
         Task<IEnumerable<string>> GetStrategyNamesAsync();
+
+        /// <summary>
+        /// Get email trigger reports with flexible filtering and pagination
+        /// </summary>
+        Task<(IEnumerable<EmailTriggerReportDto> Reports, int TotalCount)> GetEmailTriggerReportsFilteredAsync(EmailTriggerReportFilterDto filter);
     }
 }

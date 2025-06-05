@@ -126,5 +126,90 @@ namespace EmailCampaignReporting.API.Controllers
                 return StatusCode(500, new { error = "An error occurred while retrieving strategy names." });
             }
         }
+
+        /// <summary>
+        /// Get email trigger reports with flexible filtering and pagination
+        /// </summary>        /// <param name="strategyName">Filter by strategy name (partial match)</param>
+        /// <param name="firstEmailSentFrom">Filter by minimum first email sent date</param>
+        /// <param name="firstEmailSentTo">Filter by maximum first email sent date</param>
+        /// <param name="minTotalEmails">Filter by minimum total emails count</param>
+        /// <param name="maxTotalEmails">Filter by maximum total emails count</param>
+        /// <param name="minDeliveredCount">Filter by minimum delivered count</param>
+        /// <param name="minOpenedCount">Filter by minimum opened count</param>
+        /// <param name="minClickedCount">Filter by minimum clicked count</param>
+        /// <param name="pageNumber">Page number (1-based)</param>
+        /// <param name="pageSize">Number of items per page</param>
+        /// <param name="sortBy">Sort field name (StrategyName, TotalEmails, DeliveredCount, etc.)</param>
+        /// <param name="sortDirection">Sort direction (asc or desc)</param>
+        /// <returns>Filtered and paginated list of email trigger reports</returns>
+        [HttpGet("filtered")]        public async Task<IActionResult> GetEmailTriggerReportsFiltered(
+            [FromQuery] string? strategyName = null,
+            [FromQuery] DateTime? firstEmailSentFrom = null,
+            [FromQuery] DateTime? firstEmailSentTo = null,
+            [FromQuery] int? minTotalEmails = null,
+            [FromQuery] int? maxTotalEmails = null,
+            [FromQuery] int? minDeliveredCount = null,
+            [FromQuery] int? minOpenedCount = null,
+            [FromQuery] int? minClickedCount = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? sortBy = "StrategyName",
+            [FromQuery] string? sortDirection = "asc")
+        {            try
+            {
+                _logger.LogInformation("Getting filtered email trigger reports - Page: {PageNumber}, Size: {PageSize}", pageNumber, pageSize);
+
+                // Validate pagination parameters
+                if (pageNumber < 1)
+                {
+                    return BadRequest(new { error = "Page number must be greater than 0." });
+                }
+
+                if (pageSize < 1 || pageSize > 1000)
+                {
+                    return BadRequest(new { error = "Page size must be between 1 and 1000." });
+                }                // Validate date range
+                if (firstEmailSentFrom.HasValue && firstEmailSentTo.HasValue && firstEmailSentFrom > firstEmailSentTo)
+                {
+                    return BadRequest(new { error = "First email sent 'from' date cannot be later than 'to' date." });
+                }
+
+                // Validate numeric ranges
+                if (minTotalEmails.HasValue && maxTotalEmails.HasValue && minTotalEmails > maxTotalEmails)
+                {
+                    return BadRequest(new { error = "Minimum total emails cannot be greater than maximum total emails." });
+                }                // Create filter object
+                var filter = new EmailTriggerReportFilterDto
+                {
+                    StrategyName = strategyName,
+                    FirstEmailSentFrom = firstEmailSentFrom,
+                    FirstEmailSentTo = firstEmailSentTo,
+                    MinTotalEmails = minTotalEmails,
+                    MaxTotalEmails = maxTotalEmails,
+                    MinDeliveredCount = minDeliveredCount,
+                    MinOpenedCount = minOpenedCount,
+                    MinClickedCount = minClickedCount,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    SortBy = sortBy,
+                    SortDirection = sortDirection
+                };
+
+                var (reports, totalCount) = await _sqlServerTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
+                var reportsList = reports.ToList();
+
+                var response = new PaginatedResponse<EmailTriggerReportDto>(reportsList, totalCount, pageNumber, pageSize);
+
+                _logger.LogInformation("Retrieved {Count} filtered email trigger reports out of {TotalCount} total", 
+                    reportsList.Count, totalCount);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting filtered email trigger reports");
+                return StatusCode(500, new { error = "An error occurred while retrieving filtered email trigger reports." });
+            }
+        }
     }
 }

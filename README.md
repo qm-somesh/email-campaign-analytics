@@ -158,6 +158,101 @@ The API documentation is automatically generated and available at:
 | `/api/emailtriggerreport/summary` | GET | Get trigger report summary statistics |
 | `/api/emailtriggerreport/strategies` | GET | Get all available strategy names |
 
+## EmailTriggerReport API Endpoints
+
+| Method | Endpoint | Description | Parameters |
+|--------|----------|-------------|------------|
+| GET | `/api/EmailTriggerReport` | Get all email trigger reports with pagination | `pageNumber`, `pageSize` |
+| GET | `/api/EmailTriggerReport/{strategyName}` | Get specific email trigger report by strategy name | `strategyName` (path parameter) |
+| GET | `/api/EmailTriggerReport/summary` | Get summary statistics for all email triggers | None |
+| GET | `/api/EmailTriggerReport/strategy-names` | Get list of all available strategy names | None |
+| **NEW** | `/api/EmailTriggerReport/filtered` | **Get email trigger reports with flexible filtering and pagination** | See detailed parameters below |
+
+### New Filtered Endpoint Parameters
+
+The `/api/EmailTriggerReport/filtered` endpoint supports comprehensive filtering:
+
+#### Filter Parameters:
+- `strategyName` (string, optional): Filter by strategy name (partial match)
+- `firstEmailSentFrom` (DateTime, optional): Filter by minimum first email sent date
+- `firstEmailSentTo` (DateTime, optional): Filter by maximum first email sent date  
+- `lastEmailSentFrom` (DateTime, optional): Filter by minimum last email sent date
+- `lastEmailSentTo` (DateTime, optional): Filter by maximum last email sent date
+- `minTotalEmails` (int, optional): Filter by minimum total emails count
+- `maxTotalEmails` (int, optional): Filter by maximum total emails count
+- `minDeliveredCount` (int, optional): Filter by minimum delivered count
+- `minOpenedCount` (int, optional): Filter by minimum opened count
+- `minClickedCount` (int, optional): Filter by minimum clicked count
+
+#### Pagination Parameters:
+- `pageNumber` (int, default: 1): Page number (1-based)
+- `pageSize` (int, default: 50): Number of items per page (1-1000)
+
+#### Sorting Parameters:
+- `sortBy` (string, default: "StrategyName"): Sort field name
+  - Valid values: `StrategyName`, `TotalEmails`, `DeliveredCount`, `BouncedCount`, `OpenedCount`, `ClickedCount`, `FirstEmailSent`, `LastEmailSent`
+- `sortDirection` (string, default: "asc"): Sort direction (`asc` or `desc`)
+
+#### Example Requests:
+
+```http
+# Filter by strategy name containing "Active"
+GET /api/EmailTriggerReport/filtered?strategyName=Active&pageSize=10
+
+# Filter by date range
+GET /api/EmailTriggerReport/filtered?firstEmailSentFrom=2024-01-01&firstEmailSentTo=2024-12-31
+
+# Filter by minimum counts with sorting
+GET /api/EmailTriggerReport/filtered?minTotalEmails=100&minDeliveredCount=50&sortBy=TotalEmails&sortDirection=desc
+
+# Complex filtering
+GET /api/EmailTriggerReport/filtered?strategyName=newsletter&minTotalEmails=50&minOpenedCount=25&sortBy=OpenedCount&sortDirection=desc&pageNumber=1&pageSize=5
+```
+
+#### Response Format:
+
+The filtered endpoint returns a paginated response:
+
+```json
+{
+  "items": [
+    {
+      "strategyName": "New Active Shopper",
+      "totalEmails": 479,
+      "deliveredCount": 12,
+      "bouncedCount": 0,
+      "openedCount": 13,
+      "clickedCount": 13,
+      "complainedCount": 0,
+      "unsubscribedCount": 0,
+      "firstEmailSent": "2023-04-26T07:15:55.017",
+      "lastEmailSent": "2025-05-01T07:38:23.797",
+      "deliveryRate": 2.5052192066805845511482254700,
+      "openRate": 108.33333333333333333333333333,
+      "clickRate": 108.33333333333333333333333333,
+      "bounceRate": 0,
+      "complaintRate": 0,
+      "unsubscribeRate": 0
+    }
+  ],
+  "totalCount": 4,
+  "pageNumber": 1,
+  "pageSize": 3,
+  "totalPages": 2,
+  "hasNextPage": true,
+  "hasPreviousPage": false
+}
+```
+
+#### Validation:
+
+The endpoint includes comprehensive validation:
+- Page number must be greater than 0
+- Page size must be between 1 and 1000
+- Date ranges must be valid (from date ≤ to date)
+- Numeric ranges must be valid (min ≤ max)
+- Invalid parameters return 400 Bad Request with descriptive error messages
+
 ## 🗄️ Database Schema
 
 The application works with multiple data sources for comprehensive email campaign analytics:
