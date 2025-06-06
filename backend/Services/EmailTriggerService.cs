@@ -34,8 +34,8 @@ namespace EmailCampaignReporting.API.Services
                         MAX(eo.DateCreated) AS LastEmailSent
                     FROM 
                         EmailTrigger et
-                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
                         LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
                     WHERE 
                         et.IsActive = 1
@@ -102,8 +102,8 @@ namespace EmailCampaignReporting.API.Services
                         MAX(eo.DateCreated) AS LastEmailSent
                     FROM 
                         EmailTrigger et
-                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
                         LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
                     WHERE 
                         et.Description = @StrategyName 
@@ -170,8 +170,8 @@ namespace EmailCampaignReporting.API.Services
                         MAX(eo.DateCreated) AS LastEmailSent
                     FROM 
                         EmailTrigger et
-                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
                         LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
                     WHERE 
                         et.IsActive = 1";
@@ -334,8 +334,8 @@ namespace EmailCampaignReporting.API.Services
                     FROM (
                         SELECT et.Description
                         FROM EmailTrigger et
-                            LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-                            LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                            LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
+                            LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
                             LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
                         WHERE {string.Join(" AND ", whereConditions)}
                         GROUP BY et.Description
@@ -357,8 +357,8 @@ namespace EmailCampaignReporting.API.Services
                         MAX(eo.DateCreated) AS LastEmailSent
                     FROM 
                         EmailTrigger et
-                        LEFT JOIN EmailOutbox eo ON eo.CommunicationId = et.CommunicationId
-                        LEFT JOIN WebhookLogs es ON eo.EmailOutboxId = es.EmailOutboxId
+                        LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
+                        LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
                         LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId
                     WHERE 
                         {string.Join(" AND ", whereConditions)}
