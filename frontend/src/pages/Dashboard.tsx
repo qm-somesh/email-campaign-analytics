@@ -56,6 +56,7 @@ import {
   generateChartColors,
 } from '../utils';
 import NaturalLanguageQuery from '../components/NaturalLanguageQuery';
+import EmailTriggerComponent from '../components/EmailTriggerComponent';
 
 interface MetricCardProps {
   title: string;
@@ -215,11 +216,14 @@ const Dashboard: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Email Campaign Dashboard
-      </Typography>
-
-      {/* Natural Language Query */}
+      </Typography>      {/* Natural Language Query */}
       <Box sx={{ mb: 4 }}>
         <NaturalLanguageQuery />
+      </Box>
+
+      {/* Email Trigger Component */}
+      <Box sx={{ mb: 4 }}>
+        <EmailTriggerComponent />
       </Box>
 
       {/* Key Metrics */}

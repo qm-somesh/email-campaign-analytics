@@ -396,9 +396,37 @@ namespace EmailCampaignReporting.API.Controllers
         private async Task<bool> ProcessEmailTriggerRuleBasedQuery(string query, EmailTriggerNaturalLanguageResponseDto response)
         {
             var queryLower = query.ToLowerInvariant().Trim();
-            
-            try
+              try
             {
+                // Performance metrics queries (bounce rates, click rates, delivery rates, etc.)
+                if (queryLower.Contains("bounce rate") || queryLower.Contains("click rate") || 
+                    queryLower.Contains("delivery rate") || queryLower.Contains("open rate") ||
+                    queryLower.Contains("performance") || queryLower.Contains("metrics"))
+                {
+                    response.Intent = "performance_metrics";
+                    response.Explanation = "Getting email trigger performance metrics and summary";
+                    response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
+                    
+                    // Also get top performing strategies for context
+                    var filter = new EmailTriggerReportFilterDto
+                    {
+                        PageSize = 10,
+                        SortBy = "ClickRate",
+                        SortDirection = "desc"
+                    };
+                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
+                    response.TriggerReports = reports;
+                    response.TotalCount = totalCount;
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerSummaryAsync + GetEmailTriggerReportsFilteredAsync";
+                        response.DebugInfo.ExtractedFilters!["queryType"] = "performance_metrics";
+                    }
+                    
+                    return true;
+                }
+
                 // Summary queries
                 if (queryLower.Contains("summary") || queryLower.Contains("overview") || queryLower.Contains("total"))
                 {
@@ -451,10 +479,11 @@ namespace EmailCampaignReporting.API.Controllers
                         
                         return true;
                     }
-                }
-
-                // List all strategies
-                if (queryLower.Contains("strategies") || queryLower.Contains("campaigns") || queryLower.Contains("list"))
+                }                // List all strategies (be more specific to avoid false matches)
+                if ((queryLower.Contains("list") && (queryLower.Contains("strategies") || queryLower.Contains("campaigns"))) ||
+                    queryLower.Contains("available strategies") ||
+                    queryLower.Contains("all strategies") ||
+                    queryLower.Contains("show strategies"))
                 {
                     response.Intent = "list_strategies";
                     response.Explanation = "Getting all available strategy names";

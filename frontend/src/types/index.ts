@@ -237,3 +237,110 @@ export interface ExampleQuery {
   category: string;
   examples: string[];
 }
+
+// Email Trigger Types
+export interface EmailTriggerReport {
+  strategyName: string;
+  totalEmails: number;
+  deliveredCount: number;
+  bouncedCount: number;
+  openedCount: number;
+  clickedCount: number;
+  complainedCount: number;
+  unsubscribedCount: number;
+  firstEmailSent?: string;
+  lastEmailSent?: string;
+  // Calculated properties
+  deliveryRate: number;
+  openRate: number;
+  clickRate: number;
+  bounceRate: number;
+  complaintRate: number;
+  unsubscribeRate: number;
+}
+
+export interface EmailTriggerReportFilter {
+  strategyName?: string;
+  firstEmailSentFrom?: string;
+  firstEmailSentTo?: string;
+  minTotalEmails?: number;
+  maxTotalEmails?: number;
+  minDeliveredCount?: number;
+  minOpenedCount?: number;
+  minClickedCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface EmailTriggerResponse {
+  success: boolean;
+  campaignId?: string;
+  campaignTriggerId?: string;
+  recipientsCount: number;
+  recipientCount: number;
+  strategyName?: string;
+  generatedSql?: string;
+  message?: string;
+  estimatedDeliveryTime?: string;
+  errorMessage?: string;
+  error?: string;
+  triggeredAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface EmailTriggerRequest {
+  command: string;
+  context?: string;
+  parameters?: Record<string, any>;
+}
+
+export interface EmailTriggerNaturalLanguageResponse {
+  originalQuery: string;
+  success: boolean;
+  intent?: string;
+  generatedSql?: string;
+  explanation?: string;
+  triggerReports?: EmailTriggerReport[];
+  summary?: EmailTriggerReport;
+  availableStrategies?: string[];
+  totalCount?: number;
+  parameters?: Record<string, any>;
+  processingTimeMs: number;
+  error?: string;
+  debugInfo?: EmailTriggerQueryDebugInfo;
+}
+
+export interface EmailTriggerQueryDebugInfo {
+  processingMethod: string;
+  serviceMethodCalled?: string;
+  extractedFilters?: Record<string, any>;
+  warnings: string[];
+  additionalInfo?: Record<string, any>;
+}
+
+// Email Trigger API Response Types
+export interface EmailTriggerReportsResponse extends PaginatedResponse<EmailTriggerReport> {}
+
+export interface EmailTriggerSummaryResponse extends EmailTriggerReport {}
+
+export interface EmailTriggerStrategyNamesResponse {
+  strategyNames: string[];
+}
+
+// Email Trigger Sort Options
+export type EmailTriggerSortField = 
+  | 'strategyName'
+  | 'totalEmails'
+  | 'deliveredCount'
+  | 'bouncedCount'
+  | 'openedCount'
+  | 'clickedCount'
+  | 'firstEmailSent'
+  | 'lastEmailSent';
+
+export interface EmailTriggerSortOptions {
+  field: EmailTriggerSortField;
+  direction: 'asc' | 'desc';
+}

@@ -18,7 +18,15 @@ import {
   QueryRequestDto,
   QueryIntent,
   NaturalLanguageStatus,
-  ExampleQuery
+  ExampleQuery,
+  EmailTriggerReport,
+  EmailTriggerReportFilter,
+  EmailTriggerResponse,
+  EmailTriggerRequest,
+  EmailTriggerNaturalLanguageResponse,
+  EmailTriggerReportsResponse,
+  EmailTriggerSummaryResponse,
+  EmailTriggerStrategyNamesResponse
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5037/api';
@@ -170,6 +178,96 @@ export const recipientApi = {
   },
 };
 
+// Email Trigger API methods
+const emailTriggerApi = {
+  // Get all email trigger reports with pagination
+  getEmailTriggerReports: async (
+    pageNumber: number = 1,
+    pageSize: number = 50
+  ): Promise<EmailTriggerReportsResponse> => {
+    const response = await apiClient.get<EmailTriggerReportsResponse>(
+      `/emailtriggerreport?pageNumber=${pageNumber}&pageSize=${pageSize}`
+    );
+    return response.data;
+  },
+
+  // Get email trigger report by strategy name
+  getEmailTriggerReportByStrategy: async (
+    strategyName: string
+  ): Promise<EmailTriggerReport> => {
+    const response = await apiClient.get<EmailTriggerReport>(
+      `/emailtriggerreport/${encodeURIComponent(strategyName)}`
+    );
+    return response.data;
+  },
+
+  // Get email trigger summary statistics
+  getEmailTriggerSummary: async (): Promise<EmailTriggerSummaryResponse> => {
+    const response = await apiClient.get<EmailTriggerSummaryResponse>(
+      '/emailtriggerreport/summary'
+    );
+    return response.data;
+  },
+
+  // Get available strategy names
+  getStrategyNames: async (): Promise<string[]> => {
+    const response = await apiClient.get<string[]>(
+      '/emailtriggerreport/strategy-names'
+    );
+    return response.data;
+  },
+
+  // Get filtered email trigger reports
+  getEmailTriggerReportsFiltered: async (
+    filter: EmailTriggerReportFilter
+  ): Promise<EmailTriggerReportsResponse> => {
+    const params = new URLSearchParams();
+
+    if (filter.strategyName) params.append('strategyName', filter.strategyName);
+    if (filter.firstEmailSentFrom) params.append('firstEmailSentFrom', filter.firstEmailSentFrom);
+    if (filter.firstEmailSentTo) params.append('firstEmailSentTo', filter.firstEmailSentTo);
+    if (filter.minTotalEmails !== undefined) params.append('minTotalEmails', filter.minTotalEmails.toString());
+    if (filter.maxTotalEmails !== undefined) params.append('maxTotalEmails', filter.maxTotalEmails.toString());
+    if (filter.minDeliveredCount !== undefined) params.append('minDeliveredCount', filter.minDeliveredCount.toString());
+    if (filter.minOpenedCount !== undefined) params.append('minOpenedCount', filter.minOpenedCount.toString());
+    if (filter.minClickedCount !== undefined) params.append('minClickedCount', filter.minClickedCount.toString());
+    if (filter.pageNumber) params.append('pageNumber', filter.pageNumber.toString());
+    if (filter.pageSize) params.append('pageSize', filter.pageSize.toString());
+    if (filter.sortBy) params.append('sortBy', filter.sortBy);
+    if (filter.sortDirection) params.append('sortDirection', filter.sortDirection);
+
+    const response = await apiClient.get<EmailTriggerReportsResponse>(
+      `/emailtriggerreport/filtered?${params.toString()}`
+    );
+    return response.data;
+  },
+
+  // Trigger email campaign via natural language
+  triggerCampaignWithNaturalLanguage: async (
+    request: EmailTriggerRequest
+  ): Promise<EmailTriggerNaturalLanguageResponse> => {
+    const response = await apiClient.post<EmailTriggerNaturalLanguageResponse>(
+      '/emailtriggerreport/trigger',
+      request
+    );
+    return response.data;
+  },
+  // Process natural language query for email triggers
+  processNaturalLanguageQuery: async (
+    query: string,
+    includeDebugInfo: boolean = false
+  ): Promise<EmailTriggerNaturalLanguageResponse> => {
+    const response = await apiClient.post<EmailTriggerNaturalLanguageResponse>(
+      `/NaturalLanguage/triggers/query`,
+      { 
+        query,
+        includeDebugInfo 
+      }
+    );
+    return response.data;
+  }
+};
+
 // Utility functions
 export const formatApiError = (error: any): string => {
   if (error.response?.data?.message) {
@@ -227,6 +325,7 @@ export default {
   emailListApi,
   recipientApi,
   naturalLanguageApi,
+  emailTriggerApi,
   formatApiError,
   isApiError,
 };

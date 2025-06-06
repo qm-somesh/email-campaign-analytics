@@ -15,6 +15,7 @@ import EmailListsPage from './pages/EmailListsPage';
 import RecipientsPage from './pages/RecipientsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import EmailTriggerPage from './pages/EmailTriggerPage';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -82,13 +83,13 @@ function App() {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Router>
-          <Layout>
-            <Routes>
+          <Layout>            <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/email-lists" element={<EmailListsPage />} />
               <Route path="/recipients" element={<RecipientsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/email-triggers" element={<EmailTriggerPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </Layout>

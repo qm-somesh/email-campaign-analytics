@@ -1,0 +1,66 @@
+### Test EmailTrigger Natural Language Endpoint
+# Testing the endpoint: http://localhost:5037/api/NaturalLanguage/triggers/query
+
+### 1. Test Summary Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "show me a summary of email triggers",
+    "includeDebugInfo": true
+}
+
+### 2. Test Strategy Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "show me strategy Newsletter Campaign",
+    "includeDebugInfo": true
+}
+
+### 3. Test Top Performers Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "show me the top performing campaigns",
+    "includeDebugInfo": true
+}
+
+### 4. Test List Strategies Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "list all available strategies",
+    "includeDebugInfo": true
+}
+
+### 5. Test Recent Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "show me recent email trigger reports",
+    "includeDebugInfo": true
+}
+
+### 6. Test Invalid Query (Should handle gracefully)
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "",
+    "includeDebugInfo": true
+}
+
+### 7. Test LLM Fallback Query
+POST http://localhost:5037/api/NaturalLanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "what are the bounce rates for automotive campaigns in Q1",
+    "includeDebugInfo": true,
+    "context": "automotive_email_analytics"
+}
