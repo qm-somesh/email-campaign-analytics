@@ -11,3 +11,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Hide potential development widgets/overlays */
+div[style*="position: fixed"][style*="bottom"][style*="right"],
+div[style*="position: fixed"][style*="z-index"] {
+  display: none !important;
+}
+
+/* Hide common dev tool overlays */
+.__react-dev-tools,
+.apollo-devtools,
+.debug-overlay,
+[class*="devtools"],
+[id*="devtools"] {
+  display: none !important;
+}

@@ -18,11 +18,11 @@ import {
 import {
   Menu,
   Dashboard,
-  Campaign,
-  Email,
-  People,
-  BarChart,
-  Settings,
+  // Campaign,
+  // Email,
+  // People,
+  // BarChart,
+  // Settings,
   Send,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
@@ -35,12 +35,12 @@ interface LayoutProps {
 
 const navigationItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-  { text: 'Campaigns', icon: <Campaign />, path: '/campaigns' },
-  { text: 'Email Lists', icon: <Email />, path: '/email-lists' },
-  { text: 'Recipients', icon: <People />, path: '/recipients' },
+  // { text: 'Campaigns', icon: <Campaign />, path: '/campaigns' },
+  // { text: 'Email Lists', icon: <Email />, path: '/email-lists' },
+  // { text: 'Recipients', icon: <People />, path: '/recipients' },
   { text: 'Email Triggers', icon: <Send />, path: '/email-triggers' },
-  { text: 'Analytics', icon: <BarChart />, path: '/analytics' },
-  { text: 'Settings', icon: <Settings />, path: '/settings' },
+  // { text: 'Analytics', icon: <BarChart />, path: '/analytics' },
+  // { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
