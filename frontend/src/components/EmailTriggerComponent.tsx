@@ -27,6 +27,7 @@ import {
   EmailTriggerNaturalLanguageResponse,
 } from '../types';
 import EmailTriggerReportsGrid from './EmailTriggerReportsGrid';
+import NaturalLanguageQueryExamples from './QueryExamples';
 
 interface EmailTriggerComponentProps {
   maxItems?: number;
@@ -233,20 +234,27 @@ const EmailTriggerComponent: React.FC<EmailTriggerComponentProps> = ({
             </Card>
           </Box>
         </Box>
-      )}
-
-      {/* Natural Language Query */}
+      )}      {/* Natural Language Query */}
       {showNaturalLanguage && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="h6" gutterBottom>
             Ask about Email Triggers
           </Typography>
+            {/* Enhanced Query Examples */}
+          <Box sx={{ mb: 2 }}>
+            <NaturalLanguageQueryExamples 
+              onExampleClick={setNaturalLanguageQuery}
+              compact={true}
+            />
+          </Box>
+
+          {/* Query Input */}
           <Box display="flex" gap={1} alignItems="center">
             <TextField
               fullWidth
               size="small"
               variant="outlined"
-              placeholder="e.g., 'Show campaigns with high open rates'"
+              placeholder="Ask any question about your email campaigns..."
               value={naturalLanguageQuery}
               onChange={(e) => setNaturalLanguageQuery(e.target.value)}
               onKeyPress={(e) => {
@@ -254,6 +262,7 @@ const EmailTriggerComponent: React.FC<EmailTriggerComponentProps> = ({
                   handleNaturalLanguageQuery();
                 }
               }}
+              helperText="Tip: Click any example above or type your own question"
             />
             <Button
               variant="contained"
