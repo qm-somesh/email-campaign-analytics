@@ -329,37 +329,25 @@ namespace EmailCampaignReporting.API.Controllers
                     return BadRequest("Query cannot be empty");
                 }
 
-                _logger.LogInformation("Processing EmailTrigger natural language query: {Query}", request.Query);
-
-                // Initialize debug info if requested
+                _logger.LogInformation("Processing EmailTrigger natural language query: {Query}", request.Query);                // Initialize debug info if requested
                 if (request.IncludeDebugInfo)
                 {
                     response.DebugInfo = new EmailTriggerQueryDebugInfo
                     {
-                        ProcessingMethod = "rule-based",
+                        ProcessingMethod = "LLM-only", // Rule-based processing is disabled
                         ExtractedFilters = new Dictionary<string, object>(),
-                        Warnings = new List<string>(),
+                        Warnings = new List<string> { "Rule-based processing disabled, forcing LLM processing only" },
                         AdditionalInfo = new Dictionary<string, object>()
                     };
                 }
 
-                // Try rule-based processing first for common EmailTrigger queries
-                var ruleBasedSuccess = await ProcessEmailTriggerRuleBasedQuery(request.Query, response);
-                
-                if (ruleBasedSuccess)
-                {
-                    response.Success = true;
-                    response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
-                    return Ok(response);
-                }
-
-                // Fallback to LLM processing if rule-based fails
+                // Skip rule-based processing - process with LLM service only
                 if (_llmService != null)
                 {
                     if (response.DebugInfo != null)
                     {
                         response.DebugInfo.ProcessingMethod = "LLM";
-                        response.DebugInfo.Warnings.Add("Rule-based processing failed, using LLM");
+                        // Note: No warning about rule-based failure since it's intentionally disabled
                     }
 
                     await ProcessEmailTriggerLLMQuery(request.Query, response, request.Context);
@@ -388,16 +376,87 @@ namespace EmailCampaignReporting.API.Controllers
                 response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
                 return StatusCode(500, response);
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Process EmailTrigger queries using rule-based logic for common patterns
         /// </summary>
         private async Task<bool> ProcessEmailTriggerRuleBasedQuery(string query, EmailTriggerNaturalLanguageResponseDto response)
-        {
-            var queryLower = query.ToLowerInvariant().Trim();
-              try
-            {
+        {            var queryLower = query.ToLowerInvariant().Trim();
+            try
+            {                // 🔥 PRIORITY 1: High-performance queries with numeric thresholds (MUST BE FIRST)
+                var numericThresholdMatch = System.Text.RegularExpressions.Regex.Match(
+                    queryLower, 
+                    @"(click|open|deliver|bounce).*?(more than|greater than|above|over|>\s*)(\d+)|" +
+                    @"(click|open|deliver|bounce).*?(less than|below|under|<\s*)(\d+)|" +
+                    @"high.*?(click|open|deliver).*?(more than|greater than|above|over).*?(\d+)"
+                );
+                
+                if (numericThresholdMatch.Success)
+                {
+                    var metricType = numericThresholdMatch.Groups[1].Value ?? 
+                                   numericThresholdMatch.Groups[4].Value ?? 
+                                   numericThresholdMatch.Groups[7].Value;
+                    var threshold = int.Parse(numericThresholdMatch.Groups[3].Value ?? 
+                                            numericThresholdMatch.Groups[6].Value ?? 
+                                            numericThresholdMatch.Groups[9].Value);
+                    var isGreater = numericThresholdMatch.Groups[2].Success || numericThresholdMatch.Groups[8].Success;
+                    
+                    response.Intent = $"filtered_{metricType}";
+                    
+                    var filter = new EmailTriggerReportFilterDto
+                    {
+                        PageSize = 20,
+                        SortBy = metricType.Contains("click") ? "ClickedCount" : 
+                                metricType.Contains("open") ? "OpenedCount" : 
+                                metricType.Contains("deliver") ? "DeliveredCount" : "BouncedCount",
+                        SortDirection = "desc"
+                    };
+                    
+                    // Apply the appropriate filter
+                    if (metricType.Contains("click"))
+                    {
+                        if (isGreater)
+                        {
+                            filter.MinClickedCount = threshold;
+                            response.Explanation = $"Getting strategies with click count more than {threshold}";
+                        }
+                        else
+                        {
+                            response.Explanation = $"Getting strategies with click count less than {threshold} (filtering after query)";
+                        }
+                    }
+                    else if (metricType.Contains("open"))
+                    {
+                        if (isGreater)
+                        {
+                            filter.MinOpenedCount = threshold;
+                            response.Explanation = $"Getting strategies with open count more than {threshold}";
+                        }
+                    }
+                    else if (metricType.Contains("deliver"))
+                    {
+                        if (isGreater)
+                        {
+                            filter.MinDeliveredCount = threshold;
+                            response.Explanation = $"Getting strategies with delivered count more than {threshold}";
+                        }
+                    }
+                    
+                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
+                    response.TriggerReports = reports;
+                    response.TotalCount = totalCount;
+                    
+                    if (response.DebugInfo != null)
+                    {
+                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync";
+                        response.DebugInfo.ExtractedFilters!["metricType"] = metricType;
+                        response.DebugInfo.ExtractedFilters["threshold"] = threshold;
+                        response.DebugInfo.ExtractedFilters["isGreater"] = isGreater;
+                        response.DebugInfo.ExtractedFilters["appliedFilter"] = $"MinClickedCount={filter.MinClickedCount}";
+                    }
+                    
+                    return true;
+                }
+
                 // Performance metrics queries (bounce rates, click rates, delivery rates, etc.)
                 if (queryLower.Contains("bounce rate") || queryLower.Contains("click rate") || 
                     queryLower.Contains("delivery rate") || queryLower.Contains("open rate") ||
@@ -589,16 +648,95 @@ namespace EmailCampaignReporting.API.Controllers
                 _logger.LogWarning(ex, "Error in LLM processing for EmailTrigger query");
                 return false;
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Map LLM response intent to specific EmailTrigger service calls
         /// </summary>
         private async Task MapLLMIntentToEmailTriggerService(NaturalLanguageQueryResponseDto llmResponse, EmailTriggerNaturalLanguageResponseDto response)
         {
             try
             {
-                switch (llmResponse.Intent?.ToLowerInvariant())
+                var intent = llmResponse.Intent?.ToLowerInvariant();
+                _logger.LogInformation("MapLLMIntentToEmailTriggerService: Processing intent '{Intent}'", intent);
+                
+                // 🔥 PRIORITY: Handle numeric threshold filtering from LLM service                if (intent?.StartsWith("filtered_") == true)
+                {
+                    _logger.LogInformation("MapLLMIntentToEmailTriggerService: Processing filtered intent '{Intent}'", intent);
+                    var metricType = intent!.Substring("filtered_".Length);
+                    _logger.LogInformation("MapLLMIntentToEmailTriggerService: Extracted metric type '{MetricType}'", metricType);
+                    
+                    // Extract threshold parameters from LLM response
+                    if (llmResponse.Parameters != null &&
+                        llmResponse.Parameters.TryGetValue("threshold", out var thresholdObj) &&
+                        llmResponse.Parameters.TryGetValue("isGreater", out var isGreaterObj) &&
+                        int.TryParse(thresholdObj?.ToString(), out var threshold) &&
+                        bool.TryParse(isGreaterObj?.ToString(), out var isGreater))
+                    {
+                        _logger.LogInformation("MapLLMIntentToEmailTriggerService: Extracted parameters - threshold: {Threshold}, isGreater: {IsGreater}", threshold, isGreater);
+                        var filter = new EmailTriggerReportFilterDto
+                        {
+                            PageSize = 20,
+                            SortBy = metricType.Contains("click") ? "ClickedCount" : 
+                                    metricType.Contains("open") ? "OpenedCount" : 
+                                    metricType.Contains("deliver") ? "DeliveredCount" : "BouncedCount",
+                            SortDirection = "desc"
+                        };
+                        
+                        // Apply the appropriate filter
+                        if (metricType.Contains("click"))
+                        {
+                            if (isGreater)
+                            {
+                                filter.MinClickedCount = threshold;
+                                response.Explanation = $"Getting strategies with click count more than {threshold}";
+                            }
+                            else
+                            {
+                                response.Explanation = $"Getting strategies with click count less than {threshold} (filtering after query)";
+                            }
+                        }
+                        else if (metricType.Contains("open"))
+                        {
+                            if (isGreater)
+                            {
+                                filter.MinOpenedCount = threshold;
+                                response.Explanation = $"Getting strategies with open count more than {threshold}";
+                            }
+                        }
+                        else if (metricType.Contains("deliver"))
+                        {
+                            if (isGreater)
+                            {
+                                filter.MinDeliveredCount = threshold;
+                                response.Explanation = $"Getting strategies with delivered count more than {threshold}";
+                            }
+                        }
+                        
+                        var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
+                        response.TriggerReports = reports;
+                        response.TotalCount = totalCount;
+                        
+                        if (response.DebugInfo != null)
+                        {
+                            response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync (from LLM numeric threshold)";
+                            response.DebugInfo.ExtractedFilters ??= new Dictionary<string, object>();
+                            response.DebugInfo.ExtractedFilters["metricType"] = metricType;
+                            response.DebugInfo.ExtractedFilters["threshold"] = threshold;
+                            response.DebugInfo.ExtractedFilters["isGreater"] = isGreater;
+                            response.DebugInfo.ExtractedFilters["appliedFilter"] = $"Min{(metricType.Contains("click") ? "Clicked" : metricType.Contains("open") ? "Opened" : metricType.Contains("deliver") ? "Delivered" : "Bounced")}Count={threshold}";
+                        }
+                        
+                        _logger.LogInformation("Successfully applied LLM numeric threshold filter: {MetricType} {Operator} {Threshold}", 
+                            metricType, isGreater ? ">" : "<", threshold);
+                        return;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("LLM numeric threshold intent detected but parameters missing or invalid");
+                        // Fall through to default handling
+                    }
+                }
+                
+                switch (intent)
                 {
                     case "summary":
                     case "metrics":

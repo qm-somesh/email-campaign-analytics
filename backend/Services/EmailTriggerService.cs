@@ -326,13 +326,18 @@ namespace EmailCampaignReporting.API.Services
                     ? validSortFields[filter.SortBy?.ToLower() ?? ""]
                     : "et.Description";
 
-                var sortDirection = filter.SortDirection?.ToLower() == "desc" ? "DESC" : "ASC";
-
-                // First, get the total count
+                var sortDirection = filter.SortDirection?.ToLower() == "desc" ? "DESC" : "ASC";                // First, get the total count - must include all aggregate fields in subquery for HAVING clause
                 var countSql = $@"
                     SELECT COUNT(*) 
                     FROM (
-                        SELECT et.Description
+                        SELECT 
+                            et.Description,
+                            COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails,
+                            SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount,
+                            SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount,
+                            SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount,
+                            MIN(eo.DateCreated) AS FirstEmailSent,
+                            MAX(eo.DateCreated) AS LastEmailSent
                         FROM EmailTrigger et
                             LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId
                             LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId
@@ -342,7 +347,10 @@ namespace EmailCampaignReporting.API.Services
                         {(havingConditions.Any() ? "HAVING " + string.Join(" AND ", havingConditions) : "")}
                     ) AS CountQuery";
 
-                // Build the main query
+                // Debug: Log the generated SQL
+                _logger.LogDebug("Generated Count SQL: {CountSql}", countSql);
+                _logger.LogDebug("WHERE conditions: {WhereConditions}", string.Join(" AND ", whereConditions));
+                _logger.LogDebug("HAVING conditions: {HavingConditions}", string.Join(" AND ", havingConditions));                // Build the main query
                 var mainSql = $@"
                     SELECT 
                         et.Description AS StrategyName,
@@ -369,6 +377,9 @@ namespace EmailCampaignReporting.API.Services
                         {sortField} {sortDirection}
                     OFFSET @Offset ROWS
                     FETCH NEXT @PageSize ROWS ONLY";
+
+                // Debug: Log the generated main SQL
+                _logger.LogDebug("Generated Main SQL: {MainSql}", mainSql);
 
                 var results = new List<EmailTriggerReportDto>();
                 int totalCount = 0;

@@ -521,8 +521,50 @@ EXPLANATION: Recipients ranked by email volume";
                         monthName = month.Key;
                         break;
                     }
-                }
+                }                // 🔥 PRIORITY: Numeric threshold detection for campaign queries
+                _logger.LogInformation("Testing numeric threshold pattern for query: {Query}", queryLower);                var numericThresholdMatch = System.Text.RegularExpressions.Regex.Match(
+                    queryLower, 
+                    @"(click|open|deliver|bounce).*?(more than|greater than|above|over).*?(\d+)|" +
+                    @"(click|open|deliver|bounce).*?(less than|below|under).*?(\d+)|" +
+                    @"high.*?(click|open|deliver).*?(rate|count).*?(more than|greater than|above|over).*?(\d+)"
+                );
                 
+                _logger.LogInformation("Numeric threshold match success: {Success}", numericThresholdMatch.Success);
+                if (numericThresholdMatch.Success)
+                {                    _logger.LogInformation("Match groups: 1='{Group1}', 4='{Group4}', 7='{Group7}', 3='{Group3}', 6='{Group6}', 10='{Group10}'", 
+                        numericThresholdMatch.Groups[1].Value, numericThresholdMatch.Groups[4].Value, numericThresholdMatch.Groups[7].Value,
+                        numericThresholdMatch.Groups[3].Value, numericThresholdMatch.Groups[6].Value, numericThresholdMatch.Groups[10].Value);
+                        
+                    var metricType = !string.IsNullOrEmpty(numericThresholdMatch.Groups[1].Value) ? numericThresholdMatch.Groups[1].Value :
+                                   !string.IsNullOrEmpty(numericThresholdMatch.Groups[4].Value) ? numericThresholdMatch.Groups[4].Value :
+                                   numericThresholdMatch.Groups[7].Value;
+                    var thresholdStr = !string.IsNullOrEmpty(numericThresholdMatch.Groups[3].Value) ? numericThresholdMatch.Groups[3].Value :
+                                     !string.IsNullOrEmpty(numericThresholdMatch.Groups[6].Value) ? numericThresholdMatch.Groups[6].Value :
+                                     numericThresholdMatch.Groups[10].Value;
+                    var threshold = int.Parse(thresholdStr);
+                    var isGreater = numericThresholdMatch.Groups[2].Success || numericThresholdMatch.Groups[9].Success;
+                    
+                    _logger.LogInformation("Extracted values: metricType={MetricType}, threshold={Threshold}, isGreater={IsGreater}", 
+                        metricType, threshold, isGreater);
+                    
+                    response.Intent = $"filtered_{metricType}";
+                    response.Parameters = new Dictionary<string, object> 
+                    { 
+                        ["explanation"] = $"LLM Service: Getting strategies with {metricType} count {(isGreater ? "more than" : "less than")} {threshold}",
+                        ["metricType"] = metricType,
+                        ["threshold"] = threshold,
+                        ["isGreater"] = isGreater,
+                        ["processing_type"] = "llm_numeric_threshold"
+                    };
+                    
+                    // This will be handled by the controller with the EmailTriggerService
+                    response.GeneratedSql = $"-- Numeric threshold query: {metricType} {(isGreater ? ">" : "<")} {threshold}";
+                    
+                    _logger.LogInformation("LLM Service: Detected numeric threshold query - {MetricType} {Operator} {Threshold}", 
+                        metricType, isGreater ? ">" : "<", threshold);
+                    return true;
+                }
+
                 // Campaign queries
                 if (queryLower.Contains("campaign") || queryLower.Contains("strategy"))
                 {
@@ -532,7 +574,7 @@ EXPLANATION: Recipients ranked by email volume";
                     {
                         response.GeneratedSql = $"SELECT StrategyName, COUNT(*) as emails_sent, MIN(DateCreated) as first_sent, MAX(DateCreated) as last_sent FROM `PrecisionEmail.EmailOutbox` WHERE EXTRACT(MONTH FROM DateCreated) = {monthNumber.Value} GROUP BY StrategyName ORDER BY emails_sent DESC";
                         response.Parameters = new Dictionary<string, object> { ["explanation"] = $"Shows campaigns sent in {monthName} with email counts and date ranges" };
-                    }                    else if (queryLower.Contains("performance") || queryLower.Contains("top") || queryLower.Contains("best"))
+                    }else if (queryLower.Contains("performance") || queryLower.Contains("top") || queryLower.Contains("best"))
                     {
                         // Call the service method for campaign performance metrics
                         try
