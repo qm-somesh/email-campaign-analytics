@@ -95,7 +95,15 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 // Add logging
 builder.Services.AddLogging();
 
@@ -117,6 +125,7 @@ app.UseHttpsRedirection();
 
 // Use CORS
 app.UseCors("AllowFrontend");
+app.UseCors("AllowAll");
 
 app.UseAuthorization();
 

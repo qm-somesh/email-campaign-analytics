@@ -303,12 +303,59 @@ namespace EmailCampaignReporting.API.Services
                 {
                     havingConditions.Add("SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) >= @MinOpenedCount");
                     parameters.Add(new SqlParameter("@MinOpenedCount", SqlDbType.Int) { Value = filter.MinOpenedCount.Value });
-                }
-
-                if (filter.MinClickedCount.HasValue)
+                }                if (filter.MinClickedCount.HasValue)
                 {
                     havingConditions.Add("SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) >= @MinClickedCount");
                     parameters.Add(new SqlParameter("@MinClickedCount", SqlDbType.Int) { Value = filter.MinClickedCount.Value });
+                }
+
+                // Percentage-based filters (using calculated percentages in HAVING clause)
+                if (filter.MinClickRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS DECIMAL) / SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) * 100) ELSE 0 END) >= @MinClickRatePercentage");
+                    parameters.Add(new SqlParameter("@MinClickRatePercentage", SqlDbType.Decimal) { Value = filter.MinClickRatePercentage.Value });
+                }
+
+                if (filter.MaxClickRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS DECIMAL) / SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) * 100) ELSE 0 END) <= @MaxClickRatePercentage");
+                    parameters.Add(new SqlParameter("@MaxClickRatePercentage", SqlDbType.Decimal) { Value = filter.MaxClickRatePercentage.Value });
+                }
+
+                if (filter.MinOpenRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS DECIMAL) / SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) * 100) ELSE 0 END) >= @MinOpenRatePercentage");
+                    parameters.Add(new SqlParameter("@MinOpenRatePercentage", SqlDbType.Decimal) { Value = filter.MinOpenRatePercentage.Value });
+                }
+
+                if (filter.MaxOpenRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS DECIMAL) / SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) * 100) ELSE 0 END) <= @MaxOpenRatePercentage");
+                    parameters.Add(new SqlParameter("@MaxOpenRatePercentage", SqlDbType.Decimal) { Value = filter.MaxOpenRatePercentage.Value });
+                }
+
+                if (filter.MinDeliveryRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN COUNT(DISTINCT eo.EmailOutboxId) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(DISTINCT eo.EmailOutboxId) * 100) ELSE 0 END) >= @MinDeliveryRatePercentage");
+                    parameters.Add(new SqlParameter("@MinDeliveryRatePercentage", SqlDbType.Decimal) { Value = filter.MinDeliveryRatePercentage.Value });
+                }
+
+                if (filter.MaxDeliveryRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN COUNT(DISTINCT eo.EmailOutboxId) > 0 THEN (CAST(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(DISTINCT eo.EmailOutboxId) * 100) ELSE 0 END) <= @MaxDeliveryRatePercentage");
+                    parameters.Add(new SqlParameter("@MaxDeliveryRatePercentage", SqlDbType.Decimal) { Value = filter.MaxDeliveryRatePercentage.Value });
+                }
+
+                if (filter.MinBounceRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN COUNT(DISTINCT eo.EmailOutboxId) > 0 THEN (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(DISTINCT eo.EmailOutboxId) * 100) ELSE 0 END) >= @MinBounceRatePercentage");
+                    parameters.Add(new SqlParameter("@MinBounceRatePercentage", SqlDbType.Decimal) { Value = filter.MinBounceRatePercentage.Value });
+                }
+
+                if (filter.MaxBounceRatePercentage.HasValue)
+                {
+                    havingConditions.Add("(CASE WHEN COUNT(DISTINCT eo.EmailOutboxId) > 0 THEN (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(DISTINCT eo.EmailOutboxId) * 100) ELSE 0 END) <= @MaxBounceRatePercentage");
+                    parameters.Add(new SqlParameter("@MaxBounceRatePercentage", SqlDbType.Decimal) { Value = filter.MaxBounceRatePercentage.Value });
                 }
 
                 // Build ORDER BY clause

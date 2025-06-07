@@ -107,12 +107,53 @@ namespace EmailCampaignReporting.API.Services
             if (filter.MinOpenedCount.HasValue)
             {
                 filteredData = filteredData.Where(x => x.OpenedCount >= filter.MinOpenedCount.Value);
-            }
-
-            if (filter.MinClickedCount.HasValue)
+            }            if (filter.MinClickedCount.HasValue)
             {
                 filteredData = filteredData.Where(x => x.ClickedCount >= filter.MinClickedCount.Value);
-            }            // Apply sorting
+            }
+
+            // Apply percentage-based filters
+            if (filter.MinClickRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.ClickRate >= filter.MinClickRatePercentage.Value);
+            }
+
+            if (filter.MaxClickRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.ClickRate <= filter.MaxClickRatePercentage.Value);
+            }
+
+            if (filter.MinOpenRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.OpenRate >= filter.MinOpenRatePercentage.Value);
+            }
+
+            if (filter.MaxOpenRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.OpenRate <= filter.MaxOpenRatePercentage.Value);
+            }
+
+            if (filter.MinDeliveryRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.DeliveryRate >= filter.MinDeliveryRatePercentage.Value);
+            }
+
+            if (filter.MaxDeliveryRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.DeliveryRate <= filter.MaxDeliveryRatePercentage.Value);
+            }
+
+            if (filter.MinBounceRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.BounceRate >= filter.MinBounceRatePercentage.Value);
+            }
+
+            if (filter.MaxBounceRatePercentage.HasValue)
+            {
+                filteredData = filteredData.Where(x => x.BounceRate <= filter.MaxBounceRatePercentage.Value);
+            }
+
+            // Apply sorting
             if (!string.IsNullOrWhiteSpace(filter.SortBy))
             {
                 var isDescending = filter.SortDirection?.ToLower() == "desc";

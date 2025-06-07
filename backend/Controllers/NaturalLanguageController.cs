@@ -376,236 +376,6 @@ namespace EmailCampaignReporting.API.Controllers
                 response.ProcessingTimeMs = (int)stopwatch.ElapsedMilliseconds;
                 return StatusCode(500, response);
             }
-        }        /// <summary>
-        /// Process EmailTrigger queries using rule-based logic for common patterns
-        /// </summary>
-        private async Task<bool> ProcessEmailTriggerRuleBasedQuery(string query, EmailTriggerNaturalLanguageResponseDto response)
-        {            var queryLower = query.ToLowerInvariant().Trim();
-            try
-            {                // 🔥 PRIORITY 1: High-performance queries with numeric thresholds (MUST BE FIRST)
-                var numericThresholdMatch = System.Text.RegularExpressions.Regex.Match(
-                    queryLower, 
-                    @"(click|open|deliver|bounce).*?(more than|greater than|above|over|>\s*)(\d+)|" +
-                    @"(click|open|deliver|bounce).*?(less than|below|under|<\s*)(\d+)|" +
-                    @"high.*?(click|open|deliver).*?(more than|greater than|above|over).*?(\d+)"
-                );
-                
-                if (numericThresholdMatch.Success)
-                {
-                    var metricType = numericThresholdMatch.Groups[1].Value ?? 
-                                   numericThresholdMatch.Groups[4].Value ?? 
-                                   numericThresholdMatch.Groups[7].Value;
-                    var threshold = int.Parse(numericThresholdMatch.Groups[3].Value ?? 
-                                            numericThresholdMatch.Groups[6].Value ?? 
-                                            numericThresholdMatch.Groups[9].Value);
-                    var isGreater = numericThresholdMatch.Groups[2].Success || numericThresholdMatch.Groups[8].Success;
-                    
-                    response.Intent = $"filtered_{metricType}";
-                    
-                    var filter = new EmailTriggerReportFilterDto
-                    {
-                        PageSize = 20,
-                        SortBy = metricType.Contains("click") ? "ClickedCount" : 
-                                metricType.Contains("open") ? "OpenedCount" : 
-                                metricType.Contains("deliver") ? "DeliveredCount" : "BouncedCount",
-                        SortDirection = "desc"
-                    };
-                    
-                    // Apply the appropriate filter
-                    if (metricType.Contains("click"))
-                    {
-                        if (isGreater)
-                        {
-                            filter.MinClickedCount = threshold;
-                            response.Explanation = $"Getting strategies with click count more than {threshold}";
-                        }
-                        else
-                        {
-                            response.Explanation = $"Getting strategies with click count less than {threshold} (filtering after query)";
-                        }
-                    }
-                    else if (metricType.Contains("open"))
-                    {
-                        if (isGreater)
-                        {
-                            filter.MinOpenedCount = threshold;
-                            response.Explanation = $"Getting strategies with open count more than {threshold}";
-                        }
-                    }
-                    else if (metricType.Contains("deliver"))
-                    {
-                        if (isGreater)
-                        {
-                            filter.MinDeliveredCount = threshold;
-                            response.Explanation = $"Getting strategies with delivered count more than {threshold}";
-                        }
-                    }
-                    
-                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
-                    response.TriggerReports = reports;
-                    response.TotalCount = totalCount;
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync";
-                        response.DebugInfo.ExtractedFilters!["metricType"] = metricType;
-                        response.DebugInfo.ExtractedFilters["threshold"] = threshold;
-                        response.DebugInfo.ExtractedFilters["isGreater"] = isGreater;
-                        response.DebugInfo.ExtractedFilters["appliedFilter"] = $"MinClickedCount={filter.MinClickedCount}";
-                    }
-                    
-                    return true;
-                }
-
-                // Performance metrics queries (bounce rates, click rates, delivery rates, etc.)
-                if (queryLower.Contains("bounce rate") || queryLower.Contains("click rate") || 
-                    queryLower.Contains("delivery rate") || queryLower.Contains("open rate") ||
-                    queryLower.Contains("performance") || queryLower.Contains("metrics"))
-                {
-                    response.Intent = "performance_metrics";
-                    response.Explanation = "Getting email trigger performance metrics and summary";
-                    response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
-                    
-                    // Also get top performing strategies for context
-                    var filter = new EmailTriggerReportFilterDto
-                    {
-                        PageSize = 10,
-                        SortBy = "ClickRate",
-                        SortDirection = "desc"
-                    };
-                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
-                    response.TriggerReports = reports;
-                    response.TotalCount = totalCount;
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerSummaryAsync + GetEmailTriggerReportsFilteredAsync";
-                        response.DebugInfo.ExtractedFilters!["queryType"] = "performance_metrics";
-                    }
-                    
-                    return true;
-                }
-
-                // Summary queries
-                if (queryLower.Contains("summary") || queryLower.Contains("overview") || queryLower.Contains("total"))
-                {
-                    response.Intent = "summary";
-                    response.Explanation = "Getting email trigger performance summary";
-                    response.Summary = await _emailTriggerService.GetEmailTriggerSummaryAsync();
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerSummaryAsync";
-                    }
-                    
-                    return true;
-                }
-
-                // Strategy-specific queries
-                var strategyMatch = System.Text.RegularExpressions.Regex.Match(
-                    queryLower, 
-                    @"strategy\s+[""']?([^""'\s]+)[""']?|campaign\s+[""']?([^""'\s]+)[""']?|for\s+[""']?([^""'\s]+)[""']?"
-                );
-                
-                if (strategyMatch.Success)
-                {
-                    var strategyName = strategyMatch.Groups[1].Value ?? 
-                                     strategyMatch.Groups[2].Value ?? 
-                                     strategyMatch.Groups[3].Value;
-                    
-                    if (!string.IsNullOrEmpty(strategyName))
-                    {
-                        response.Intent = "strategy";
-                        response.Explanation = $"Getting metrics for strategy: {strategyName}";
-                        
-                        var strategyReport = await _emailTriggerService.GetEmailTriggerReportByStrategyNameAsync(strategyName);
-                        if (strategyReport != null)
-                        {
-                            response.TriggerReports = new[] { strategyReport };
-                        }
-                        else
-                        {
-                            // Get available strategies to help user
-                            response.AvailableStrategies = await _emailTriggerService.GetStrategyNamesAsync();
-                            response.Explanation = $"Strategy '{strategyName}' not found. Available strategies listed.";
-                        }
-                        
-                        if (response.DebugInfo != null)
-                        {
-                            response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportByStrategyNameAsync";
-                            response.DebugInfo.ExtractedFilters!["strategyName"] = strategyName;
-                        }
-                        
-                        return true;
-                    }
-                }                // List all strategies (be more specific to avoid false matches)
-                if ((queryLower.Contains("list") && (queryLower.Contains("strategies") || queryLower.Contains("campaigns"))) ||
-                    queryLower.Contains("available strategies") ||
-                    queryLower.Contains("all strategies") ||
-                    queryLower.Contains("show strategies"))
-                {
-                    response.Intent = "list_strategies";
-                    response.Explanation = "Getting all available strategy names";
-                    response.AvailableStrategies = await _emailTriggerService.GetStrategyNamesAsync();
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetStrategyNamesAsync";
-                    }
-                    
-                    return true;
-                }
-
-                // Top performers or best queries
-                if (queryLower.Contains("top") || queryLower.Contains("best") || queryLower.Contains("highest"))
-                {
-                    response.Intent = "top_performers";
-                    response.Explanation = "Getting top performing email triggers";
-                      var filter = new EmailTriggerReportFilterDto
-                    {
-                        PageSize = 10,
-                        SortBy = "ClickRate",
-                        SortDirection = "desc"
-                    };
-                    
-                    var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
-                    response.TriggerReports = reports;
-                    response.TotalCount = totalCount;
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync";                        response.DebugInfo.ExtractedFilters!["sortBy"] = "ClickRate";
-                        response.DebugInfo.ExtractedFilters["sortDirection"] = "desc";
-                    }
-                    
-                    return true;
-                }
-
-                // Recent reports
-                if (queryLower.Contains("recent") || queryLower.Contains("latest") || queryLower.Contains("new"))
-                {
-                    response.Intent = "recent";
-                    response.Explanation = "Getting recent email trigger reports";
-                    
-                    var reports = await _emailTriggerService.GetEmailTriggerReportsAsync(pageSize: 20, offset: 0);
-                    response.TriggerReports = reports;
-                    
-                    if (response.DebugInfo != null)
-                    {
-                        response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsAsync";
-                        response.DebugInfo.ExtractedFilters!["pageSize"] = 20;
-                    }
-                    
-                    return true;
-                }
-
-                return false; // No rule matched
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error in rule-based processing for EmailTrigger query");
-                return false;
-            }
         }
 
         /// <summary>
@@ -679,50 +449,122 @@ namespace EmailCampaignReporting.API.Controllers
                                     metricType.Contains("open") ? "OpenedCount" : 
                                     metricType.Contains("deliver") ? "DeliveredCount" : "BouncedCount",
                             SortDirection = "desc"
-                        };
+                        };                        // Check if the query is asking for percentages/rates vs raw counts
+                        var originalQuery = llmResponse.OriginalQuery?.ToLowerInvariant() ?? "";
+                        var isPercentageQuery = originalQuery.Contains("percentage") || originalQuery.Contains("rate") || originalQuery.Contains("%");
                         
-                        // Apply the appropriate filter
+                        _logger.LogInformation("MapLLMIntentToEmailTriggerService: Query analysis - isPercentageQuery: {IsPercentageQuery}, originalQuery: {OriginalQuery}", isPercentageQuery, originalQuery);
+                        
+                        // Apply the appropriate filter based on whether it's percentage or count based
                         if (metricType.Contains("click"))
                         {
-                            if (isGreater)
+                            if (isPercentageQuery)
                             {
-                                filter.MinClickedCount = threshold;
-                                response.Explanation = $"Getting strategies with click count more than {threshold}";
+                                // Use percentage-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinClickRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with click rate greater than {threshold}%";
+                                }
+                                else
+                                {
+                                    filter.MaxClickRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with click rate less than {threshold}%";
+                                }
                             }
                             else
                             {
-                                response.Explanation = $"Getting strategies with click count less than {threshold} (filtering after query)";
+                                // Use count-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinClickedCount = threshold;
+                                    response.Explanation = $"Getting strategies with click count more than {threshold}";
+                                }
+                                else
+                                {
+                                    response.Explanation = $"Getting strategies with click count less than {threshold} (filtering after query)";
+                                }
                             }
                         }
                         else if (metricType.Contains("open"))
                         {
-                            if (isGreater)
+                            if (isPercentageQuery)
                             {
-                                filter.MinOpenedCount = threshold;
-                                response.Explanation = $"Getting strategies with open count more than {threshold}";
+                                // Use percentage-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinOpenRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with open rate greater than {threshold}%";
+                                }
+                                else
+                                {
+                                    filter.MaxOpenRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with open rate less than {threshold}%";
+                                }
+                            }
+                            else
+                            {
+                                // Use count-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinOpenedCount = threshold;
+                                    response.Explanation = $"Getting strategies with open count more than {threshold}";
+                                }
                             }
                         }
                         else if (metricType.Contains("deliver"))
                         {
-                            if (isGreater)
+                            if (isPercentageQuery)
                             {
-                                filter.MinDeliveredCount = threshold;
-                                response.Explanation = $"Getting strategies with delivered count more than {threshold}";
+                                // Use percentage-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinDeliveryRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with delivery rate greater than {threshold}%";
+                                }
+                                else
+                                {
+                                    filter.MaxDeliveryRatePercentage = threshold;
+                                    response.Explanation = $"Getting strategies with delivery rate less than {threshold}%";
+                                }
+                            }
+                            else
+                            {
+                                // Use count-based filtering
+                                if (isGreater)
+                                {
+                                    filter.MinDeliveredCount = threshold;
+                                    response.Explanation = $"Getting strategies with delivered count more than {threshold}";
+                                }
                             }
                         }
                         
                         var (reports, totalCount) = await _emailTriggerService.GetEmailTriggerReportsFilteredAsync(filter);
                         response.TriggerReports = reports;
                         response.TotalCount = totalCount;
-                        
-                        if (response.DebugInfo != null)
+                          if (response.DebugInfo != null)
                         {
                             response.DebugInfo.ServiceMethodCalled = "GetEmailTriggerReportsFilteredAsync (from LLM numeric threshold)";
                             response.DebugInfo.ExtractedFilters ??= new Dictionary<string, object>();
                             response.DebugInfo.ExtractedFilters["metricType"] = metricType;
                             response.DebugInfo.ExtractedFilters["threshold"] = threshold;
                             response.DebugInfo.ExtractedFilters["isGreater"] = isGreater;
-                            response.DebugInfo.ExtractedFilters["appliedFilter"] = $"Min{(metricType.Contains("click") ? "Clicked" : metricType.Contains("open") ? "Opened" : metricType.Contains("deliver") ? "Delivered" : "Bounced")}Count={threshold}";
+                            response.DebugInfo.ExtractedFilters["isPercentageQuery"] = isPercentageQuery;
+                            
+                            if (isPercentageQuery)
+                            {
+                                var filterProperty = metricType.Contains("click") ? "MinClickRatePercentage" : 
+                                                   metricType.Contains("open") ? "MinOpenRatePercentage" : 
+                                                   metricType.Contains("deliver") ? "MinDeliveryRatePercentage" : "UnknownPercentage";
+                                response.DebugInfo.ExtractedFilters["appliedFilter"] = $"{filterProperty}={threshold}%";
+                            }
+                            else
+                            {
+                                var filterProperty = metricType.Contains("click") ? "MinClickedCount" : 
+                                                   metricType.Contains("open") ? "MinOpenedCount" : 
+                                                   metricType.Contains("deliver") ? "MinDeliveredCount" : "UnknownCount";
+                                response.DebugInfo.ExtractedFilters["appliedFilter"] = $"{filterProperty}={threshold}";
+                            }
                         }
                         
                         _logger.LogInformation("Successfully applied LLM numeric threshold filter: {MetricType} {Operator} {Threshold}", 

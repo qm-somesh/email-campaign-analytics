@@ -1,0 +1,7 @@
+POST http://localhost:5037/api/naturallanguage/triggers/query
+Content-Type: application/json
+
+{
+    "query": "Show me campaigns with high click rate percentage greater than 20",
+    "includeDebugInfo": true
+}

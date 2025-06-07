@@ -1,0 +1,36 @@
+### Test percentage filtering step by step
+
+### 1. Basic connectivity test
+POST http://localhost:5037/api/naturallanguage/triggers/query
+Content-Type: application/json
+
+{
+  "Query": "test"
+}
+
+### 2. Percentage query test
+POST http://localhost:5037/api/naturallanguage/triggers/query
+Content-Type: application/json
+
+{
+  "Query": "show me campaigns with click rate percentage greater than 20",
+  "IncludeDebugInfo": true
+}
+
+### 3. Count query test (for comparison)
+POST http://localhost:5037/api/naturallanguage/triggers/query
+Content-Type: application/json
+
+{
+  "Query": "show me campaigns with click count greater than 20",
+  "IncludeDebugInfo": true
+}
+
+### 4. Rate query test
+POST http://localhost:5037/api/naturallanguage/triggers/query
+Content-Type: application/json
+
+{
+  "Query": "find strategies with high click rate greater than 25",
+  "IncludeDebugInfo": true
+}
