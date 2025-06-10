@@ -2,16 +2,77 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "start-backend-api",
-      "type": "shell",
-      "command": "dotnet",
       "args": [
         "run",
-        "--project",
-        "backend/EmailCampaignReporting.API.csproj"
+        "build"
       ],
+      "command": "npm",
       "group": "build",
-      "isBackground": true
+      "label": "build-frontend",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "type": "shell"
+    },
+    {
+      "args": [
+        "build",
+        "--configuration",
+        "Release"
+      ],
+      "command": "dotnet",
+      "group": "build",
+      "label": "build-backend",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$msCompile"],
+      "type": "shell"
+    },
+    {
+      "args": [
+        "clean"
+      ],
+      "command": "dotnet",
+      "group": "build",
+      "label": "clean-backend",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$msCompile"],
+      "type": "shell"
+    },    {
+      "label": "build-all",
+      "dependsOrder": "sequence",
+      "dependsOn": ["clean-backend", "build-backend", "build-frontend"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "type": "shell",
+      "command": "echo",
+      "args": ["Build completed successfully!"]
+    },
+    {
+      "args": [
+        "run"
+      ],
+      "command": "dotnet",
+      "group": "build",
+      "label": "run-backend",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$msCompile"],
+      "type": "shell",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      }
     }
   ]
 }
