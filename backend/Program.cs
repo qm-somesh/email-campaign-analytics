@@ -84,6 +84,21 @@ else
     builder.Services.AddScoped<ILLMService, MockLLMService>();
 }
 
+// Register dedicated Email Trigger Filter Service for natural language filter extraction
+if (llmOptions?.ModelPath != null && 
+    !llmOptions.ModelPath.Contains("path/to/your") && 
+    File.Exists(llmOptions.ModelPath))
+{
+    Console.WriteLine("✅ Using EmailTriggerFilterService with LLM model");
+    builder.Services.AddScoped<IEmailTriggerFilterService, EmailTriggerFilterService>();
+}
+else
+{
+    Console.WriteLine("⚠️ EmailTriggerFilterService: LLM model not available, service will fail gracefully");
+    // For now, still register the service - it will handle the missing model gracefully
+    builder.Services.AddScoped<IEmailTriggerFilterService, EmailTriggerFilterService>();
+}
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
