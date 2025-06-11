@@ -37,7 +37,8 @@ namespace EmailCampaignReporting.API.Controllers
         [HttpPost("query")]
         [ProducesResponseType(typeof(NaturalLanguageEmailTriggerResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]        public async Task<ActionResult<NaturalLanguageEmailTriggerResponseDto>> ProcessNaturalLanguageQuery(
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]    
+        public async Task<ActionResult<NaturalLanguageEmailTriggerResponseDto>> ProcessNaturalLanguageQuery(
             [FromBody, Required] NaturalLanguageEmailTriggerQueryDto request)
         {
             var stopwatch = Stopwatch.StartNew();

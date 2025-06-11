@@ -1,7 +1,9 @@
 using EmailCampaignReporting.API.Models.DTOs;
+using EmailCampaignReporting.API.Configuration;
 using Microsoft.Extensions.Options;
 using LLama;
 using LLama.Common;
+using LLama.Sampling;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -60,16 +62,17 @@ namespace EmailCampaignReporting.API.Services
                 var systemPrompt = BuildFilterExtractionPrompt(context);
                 var fullPrompt = $"{systemPrompt}\n\nUser Query: {query}\n\nExtracted Filters (JSON):";
 
-                _logger.LogInformation("Processing filter extraction with LLM...");
-
-                // Configure inference parameters for focused responses
+                _logger.LogInformation("Processing filter extraction with LLM...");                // Configure inference parameters for focused responses
                 var inferenceParams = new InferenceParams
                 {
-                    Temperature = 0.1f, // Low temperature for more deterministic results
                     AntiPrompts = new[] { "\n\n", "User:", "Query:", "Human:", "Assistant:" },
                     MaxTokens = 512, // Focused response
-                    TopP = 0.9f,
-                    TopK = 40
+                    SamplingPipeline = new DefaultSamplingPipeline
+                    {
+                        Temperature = 0.1f, // Low temperature for more deterministic results
+                        TopP = 0.9f,
+                        TopK = 40
+                    }
                 };
 
                 var responseText = "";
