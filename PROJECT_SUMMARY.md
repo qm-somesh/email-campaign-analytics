@@ -1,4 +1,15 @@
-# Email Campaign Reporting Application - Complete Project Context Summary
+# Email Campaign Reporting Applicatio### Backend Status: PRODUCTION-READY & OPTIMIZED ✅
+- ✅ **API Endpoints**: All CRUD operations implemented
+- ✅ **Data Integration**: Service layer with EmailOutbox/EmailStatus data access
+- ✅ **SQL Server Integration**: EmailTriggerService with trigger reporting endpoints
+- ✅ **Mock Services**: InMemoryDataService and MockEmailTriggerService for development/testing
+- ✅ **LLM Service**: Revolutionary service-based architecture (99% performance improvement)
+- ✅ **Natural Language Queries**: Advanced query processing with sub-second response times
+- ✅ **Campaign Query Service**: 16 specialized service methods for fast data access
+- ✅ **CORS Configuration**: Enabled for frontend communication
+- ✅ **Swagger Documentation**: Available at http://localhost:5037/swagger
+- ✅ **Error Handling**: Comprehensive try-catch with proper HTTP status codes
+- ✅ **Running Successfully**: On http://localhost:5037 Project Context Summary
 
 **Created:** May 27, 2025  
 **Last Major Update:** June 1, 2025 - LLM Service Transformation Complete  
@@ -6,16 +17,16 @@
 **Location:** d:\Dev\EmailCampaignReporting
 
 ## Project Overview
-This is a **full-stack Email Campaign Reporting Application** designed for automotive email campaign analytics and reporting. The application consists of a **React.js TypeScript frontend** and a **.NET 9 Web API backend** that integrates with **Google BigQuery** for data analytics.
+This is a **full-stack Email Campaign Reporting Application** designed for automotive email campaign analytics and reporting. The application consists of a **React.js TypeScript frontend** and a **.NET 9 Web API backend** with data-driven insights for email campaign analysis.
 
 ## Architecture & Technology Stack
 
 ### Backend (.NET 9 Web API)
 - **Framework**: ASP.NET Core Web API (.NET 9)
-- **Database**: Google BigQuery for analytics data
+- **Database**: In-memory data service with SQL Server integration capability
 - **Authentication**: Configured for development (production auth pending)
 - **Documentation**: Swagger/OpenAPI integrated
-- **Testing**: MockBigQueryService for development without BigQuery credentials
+- **Testing**: Mock services for development and testing
 - **Port**: http://localhost:5037
 
 ### Frontend (React TypeScript)
@@ -27,8 +38,8 @@ This is a **full-stack Email Campaign Reporting Application** designed for autom
 - **Port**: http://localhost:3000
 
 ### Data Sources
-- **EmailOutbox Table**: Primary email sending data (BigQuery)
-- **EmailStatus Table**: Email delivery status and events (BigQuery)
+- **EmailOutbox Table**: Primary email sending data (in-memory/configurable)
+- **EmailStatus Table**: Email delivery status and events (in-memory/configurable)
 - **EmailTrigger Table**: Email trigger definitions and strategies (SQL Server)
 - **WebhookLogs Table**: Webhook delivery tracking (SQL Server)
 - **Relationship**: Connected via `EmailOutboxIdentifier` and cross-platform reporting
@@ -37,9 +48,9 @@ This is a **full-stack Email Campaign Reporting Application** designed for autom
 
 ### Backend Status: PRODUCTION-READY & OPTIMIZED ✅
 - ✅ **API Endpoints**: All CRUD operations implemented
-- ✅ **BigQuery Integration**: Service layer with EmailOutbox/EmailStatus tables
+- ✅ **Data Integration**: Service layer with EmailOutbox/EmailStatus data access
 - ✅ **SQL Server Integration**: EmailTriggerService with trigger reporting endpoints
-- ✅ **Mock Services**: MockBigQueryService and MockEmailTriggerService for development/testing
+- ✅ **Mock Services**: InMemoryDataService and MockEmailTriggerService for development/testing
 - ✅ **LLM Service**: Revolutionary service-based architecture (99% performance improvement)
 - ✅ **Natural Language Queries**: Advanced query processing with sub-second response times
 - ✅ **Campaign Query Service**: 16 specialized service methods for fast data access
@@ -76,7 +87,7 @@ This is a **full-stack Email Campaign Reporting Application** designed for autom
 - ✅ **Configuration**: Dynamic service registration based on connection string availability
 - ✅ **Production Ready**: Deployed and running with backend API
 
-## Database Schema (BigQuery Tables)
+## Database Schema (Data Tables)
 
 ### EmailOutbox Table (Primary Campaign Data)
 **Key Columns:**
@@ -137,7 +148,7 @@ This is a **full-stack Email Campaign Reporting Application** designed for autom
 - `ErrorMessage` (VARCHAR) - Error details if failed
 
 ### Integration Points
-- **Cross-Platform Reporting**: EmailTriggerService combines SQL Server trigger data with BigQuery email metrics
+- **Cross-Platform Reporting**: EmailTriggerService combines SQL Server trigger data with email campaign metrics
 - **Unified Analytics**: Provides comprehensive view across both database platforms
 - **Performance Optimization**: Separate services for optimal query performance on each platform
 
@@ -316,9 +327,9 @@ export interface Recipient {
 ## Recent Development History
 
 ### Phase 1: Backend Development ✅ (Completed)
-- Implemented BigQuery service layer
+- Implemented data service layer
 - Created all API controllers and endpoints
-- Set up MockBigQueryService for testing
+- Set up InMemoryDataService for testing
 - Configured Swagger documentation
 - Added comprehensive error handling
 
@@ -399,7 +410,7 @@ export interface Recipient {
 
 ### Campaign Query Service Layer ✨
 - **Interface**: `ICampaignQueryService` with 16 specialized methods
-- **Implementation**: `CampaignQueryService` using BigQuery data layer
+- **Implementation**: `CampaignQueryService` using data service layer
 - **Service Methods**:
   - `GetDashboardMetricsAsync()` - Overall analytics (160ms avg)
   - `GetCampaignPerformanceMetricsAsync()` - Campaign analysis (110ms avg)
@@ -440,7 +451,7 @@ export interface Recipient {
 ### Natural Language Capabilities
 - **Intent Recognition**: Campaigns, recipients, events, lists, metrics
 - **Parameter Extraction**: Date ranges, event types, filtering criteria
-- **SQL Generation**: BigQuery-compatible queries with proper schema mapping
+- **SQL Generation**: Data-compatible queries with proper schema mapping
 - **Result Processing**: Structured data with performance metrics
 
 ### Frontend Integration
@@ -483,7 +494,7 @@ export interface Recipient {
 - ✅ Backend API endpoints working correctly
 - ✅ Frontend component integrated and functional  
 - ✅ Intent extraction with 85% confidence scores
-- ✅ SQL generation for BigQuery schema
+- ✅ SQL generation for data schema
 - ✅ Mock data results with realistic performance metrics
 - ✅ Error handling and user feedback
 - ✅ Debug information and performance tracking
@@ -493,12 +504,21 @@ export interface Recipient {
 ### Backend Configuration (appsettings.Development.json)
 ```json
 {
-  "BigQuery": {
-    "ProjectId": "teamvelocity-dev-330212",
-    "DatasetId": "PrecisionEmail",
-    "CredentialsPath": "path/to/service-account-key.json",
+  "SqlServer": {
+    "ConnectionString": "Server=tvm.dev.db.internal.velocityadmin.com\\SQL01,43201;Database=TV_EmailService;Trusted_Connection=True;TrustServerCertificate=True;",
     "EmailOutboxTable": "EmailOutbox",
-    "EmailStatusTable": "EmailStatus"
+    "EmailStatusTable": "WebhookLogs",
+    "CommandTimeoutSeconds": 30
+  },
+  "LLM": {
+    "ModelPath": "d:\\Dev\\EmailCampaignReporting\\models\\TinyLlama-1.1B-Chat-v1.0.Q4_K_M.gguf",
+    "MaxTokens": 512,
+    "Temperature": 0.7,
+    "TopP": 0.9,
+    "ContextSize": 4096,
+    "GpuLayers": 32,
+    "VerboseLogging": true,
+    "TimeoutSeconds": 60
   }
 }
 ```
@@ -535,7 +555,7 @@ npm run build                 # Production build
 - `build-frontend` - Build frontend for production
 
 ## Mock Data Available
-The MockBigQueryService provides realistic test data for:
+The InMemoryDataService provides realistic test data for:
 - **Campaign Data**: Various campaign types (promotional, newsletter, announcement)
 - **Email List Data**: Multiple lists with subscriber counts and status
 - **Recipient Data**: Sample recipients with engagement metrics
@@ -556,7 +576,8 @@ backend/
 ├── Program.cs                     # Main application entry point
 ├── appsettings.Development.json   # Development configuration
 ├── Configuration/
-│   └── BigQueryOptions.cs         # BigQuery configuration options
+│   ├── LLMOptions.cs              # LLM configuration options
+│   └── SqlServerOptions.cs        # SQL Server configuration options
 ├── Controllers/
 │   ├── CampaignsController.cs     # Campaign CRUD operations
 │   ├── DashboardController.cs     # Dashboard metrics
@@ -572,9 +593,13 @@ backend/
 │       ├── DashboardMetricsDto.cs # Dashboard metrics DTO
 │       └── PaginatedResponse.cs   # Pagination wrapper
 └── Services/
-    ├── IBigQueryService.cs        # BigQuery service interface
-    ├── BigQueryService.cs         # Real BigQuery implementation
-    └── MockBigQueryService.cs     # Mock service for development
+    ├── IDataService.cs            # Data service interface
+    ├── InMemoryDataService.cs     # In-memory data implementation
+    ├── ICampaignQueryService.cs   # Campaign query service interface
+    ├── CampaignQueryService.cs    # Campaign query implementation
+    ├── ISqlServerTriggerService.cs # SQL Server trigger interface
+    ├── EmailTriggerService.cs     # Email trigger implementation
+    └── MockEmailTriggerService.cs # Mock trigger service for development
 ```
 
 ### Frontend Structure
@@ -662,11 +687,7 @@ frontend/src/
    - Check CORS configuration in backend
    - Verify API endpoints in apiService.ts
 
-4. **BigQuery Connection Issues**
-   - Application automatically falls back to MockBigQueryService
-   - For production, update credentials path in appsettings.json
-
-5. **Recipients Page Runtime Error** ✅ **RESOLVED (May 28, 2025)**
+4. **Recipients Page Runtime Error** ✅ **RESOLVED (May 28, 2025)**
    - **Issue**: "Cannot read properties of undefined (reading 'filter')"
    - **Cause**: Array methods called on undefined recipients state
    - **Solution**: Added null safety checks to RecipientsPage.tsx
@@ -693,7 +714,7 @@ frontend/src/
 - ✅ No external dependencies required
 
 ### Production Environment
-- **Required**: Google BigQuery credentials and configuration
+- **Required**: Database connectivity configuration (SQL Server or cloud data sources)
 - **Required**: Authentication/authorization implementation
 - **Required**: Environment-specific configuration
 - **Recommended**: Docker containerization
@@ -710,7 +731,7 @@ frontend/src/
 - **✅ Bug Fixes**: All major runtime errors resolved (Recipients page fixed May 28, 2025)
 - **✅ Performance**: Enterprise-grade response times (100-450ms average) (COMPLETE)
 - **✅ Build & Deployment**: Backend successfully compiled and running on localhost:5037 (COMPLETE)
-- **🔧 Production**: Ready for BigQuery credentials and deployment configuration
+- **🔧 Production**: Ready for database credentials and deployment configuration
 
 ## Performance Achievements (June 1, 2025)
 
@@ -852,7 +873,7 @@ This project represents a complete, functional email campaign reporting applicat
 
 The application now supports dual-database architecture with both BigQuery (for email campaign analytics) and SQL Server (for email trigger reporting), providing comprehensive email marketing analytics across multiple data platforms. The mock data services provide realistic development environments that don't require external database access, making it easy to demonstrate, develop, and extend the application.
 
-**Current Status**: The application is fully functional with enterprise-grade performance, ready for production deployment with BigQuery credentials.
+**Current Status**: The application is fully functional with enterprise-grade performance, ready for production deployment with database connectivity.
 
 **Last Updated**: June 5, 2025  
 **Compilation Status**: ✅ No TypeScript errors found - Clean build  

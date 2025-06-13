@@ -61,13 +61,13 @@ const EmailTriggerComponent: React.FC<EmailTriggerComponentProps> = ({
     sortBy: 'totalEmails',
     sortDirection: 'desc',
   });
-
   // Load initial data
   useEffect(() => {
     loadReports();
     if (showSummary) {
       loadSummary();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadReports = async () => {
@@ -116,14 +116,8 @@ const EmailTriggerComponent: React.FC<EmailTriggerComponentProps> = ({
       setNlQueryLoading(false);
     }
   };
-
   const formatRate = (rate: number): string => {
     return `${rate.toFixed(1)}%`;
-  };
-
-  const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
   };
 
   const formatNumber = (num: number): string => {

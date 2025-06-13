@@ -7,22 +7,15 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemButton,
-  ListItemIcon,
+  ListItemButton,  ListItemIcon,
   ListItemText,
   Toolbar,
   Typography,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Menu,
   Dashboard,
-  // Campaign,
-  // Email,
-  // People,
-  // BarChart,
-  // Settings,
   Send,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
@@ -35,18 +28,12 @@ interface LayoutProps {
 
 const navigationItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-  // { text: 'Campaigns', icon: <Campaign />, path: '/campaigns' },
-  // { text: 'Email Lists', icon: <Email />, path: '/email-lists' },
-  // { text: 'Recipients', icon: <People />, path: '/recipients' },
   { text: 'Email Triggers', icon: <Send />, path: '/email-triggers' },
-  // { text: 'Analytics', icon: <BarChart />, path: '/analytics' },
-  // { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
 
   const handleDrawerToggle = () => {

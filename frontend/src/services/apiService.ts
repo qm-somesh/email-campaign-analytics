@@ -1,32 +1,18 @@
 import axios, { AxiosResponse } from 'axios';
 import {
-  Campaign,
-  CampaignStats,
-  EmailList,
-  Recipient,
-  EmailEvent,
   DashboardMetrics,
-  RecentCampaign,
   RecentEvent,
-  PaginatedResponse,
-  CampaignFilters,
-  RecipientFilters,
-  SortOptions,
-  PaginationOptions,
   NaturalLanguageQueryRequest,
   NaturalLanguageQueryResponse,
   QueryRequestDto,
   QueryIntent,
   NaturalLanguageStatus,
-  ExampleQuery,
   EmailTriggerReport,
   EmailTriggerReportFilter,
-  EmailTriggerResponse,
   EmailTriggerRequest,
   EmailTriggerNaturalLanguageResponse,
   EmailTriggerReportsResponse,
-  EmailTriggerSummaryResponse,
-  EmailTriggerStrategyNamesResponse
+  EmailTriggerSummaryResponse
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5037/api';
@@ -63,57 +49,6 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Campaign API
-export const campaignApi = {
-  // Get all campaigns with pagination and filters
-  getCampaigns: async (
-    pagination: PaginationOptions,
-    filters?: CampaignFilters,
-    sort?: SortOptions
-  ): Promise<PaginatedResponse<Campaign>> => {
-    const params = new URLSearchParams();
-    params.append('pageNumber', pagination.pageNumber.toString());
-    params.append('pageSize', pagination.pageSize.toString());
-      if (filters?.status) params.append('status', filters.status);
-    if (filters?.type) params.append('type', filters.type);
-    if (filters?.fromDate) params.append('fromDate', filters.fromDate);
-    if (filters?.toDate) params.append('toDate', filters.toDate);
-    if (filters?.search) params.append('search', filters.search);
-    
-    if (sort?.field) params.append('sortBy', sort.field);
-    if (sort?.direction) params.append('sortDirection', sort.direction);
-
-    const response = await apiClient.get<PaginatedResponse<Campaign>>(`/campaigns?${params}`);
-    return response.data;
-  },
-  // Get specific campaign
-  getCampaign: async (id: string): Promise<Campaign> => {
-    const response = await apiClient.get<Campaign>(`/campaigns/${id}`);
-    return response.data;
-  },
-
-  // Get campaign statistics
-  getCampaignStats: async (id: string): Promise<CampaignStats> => {
-    const response = await apiClient.get<CampaignStats>(`/campaigns/${id}/stats`);
-    return response.data;
-  },
-
-  // Get campaign email events
-  getCampaignEvents: async (
-    id: string,
-    pagination: PaginationOptions,
-    eventType?: string
-  ): Promise<PaginatedResponse<EmailEvent>> => {
-    const params = new URLSearchParams();
-    params.append('pageNumber', pagination.pageNumber.toString());
-    params.append('pageSize', pagination.pageSize.toString());
-    if (eventType) params.append('eventType', eventType);
-
-    const response = await apiClient.get<PaginatedResponse<EmailEvent>>(`/campaigns/${id}/events?${params}`);
-    return response.data;
-  },
-};
-
 // Dashboard API
 export const dashboardApi = {
   // Get dashboard metrics
@@ -122,58 +57,9 @@ export const dashboardApi = {
     return response.data;
   },
 
-  // Get recent campaigns
-  getRecentCampaigns: async (limit: number = 10): Promise<RecentCampaign[]> => {
-    const response = await apiClient.get<RecentCampaign[]>(`/dashboard/recent-campaigns?limit=${limit}`);
-    return response.data;
-  },
-
   // Get recent events
   getRecentEvents: async (limit: number = 20): Promise<RecentEvent[]> => {
     const response = await apiClient.get<RecentEvent[]>(`/dashboard/recent-events?limit=${limit}`);
-    return response.data;
-  },
-};
-
-// Email Lists API
-export const emailListApi = {
-  // Get all email lists
-  getEmailLists: async (): Promise<EmailList[]> => {
-    const response = await apiClient.get<EmailList[]>('/emaillists');
-    return response.data;
-  },
-  // Get specific email list
-  getEmailList: async (id: string): Promise<EmailList> => {
-    const response = await apiClient.get<EmailList>(`/emaillists/${id}`);
-    return response.data;
-  },
-};
-
-// Recipients API
-export const recipientApi = {
-  // Get recipients with pagination and filters
-  getRecipients: async (
-    pagination: PaginationOptions,
-    filters?: RecipientFilters,
-    sort?: SortOptions
-  ): Promise<PaginatedResponse<Recipient>> => {
-    const params = new URLSearchParams();
-    params.append('pageNumber', pagination.pageNumber.toString());
-    params.append('pageSize', pagination.pageSize.toString());
-    
-    if (filters?.listId) params.append('listId', filters.listId.toString());
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.search) params.append('search', filters.search);
-    
-    if (sort?.field) params.append('sortBy', sort.field);
-    if (sort?.direction) params.append('sortDirection', sort.direction);
-
-    const response = await apiClient.get<PaginatedResponse<Recipient>>(`/recipients?${params}`);
-    return response.data;
-  },
-  // Get specific recipient
-  getRecipient: async (id: string): Promise<Recipient> => {
-    const response = await apiClient.get<Recipient>(`/recipients/${id}`);
     return response.data;
   },
 };
@@ -319,13 +205,12 @@ export const naturalLanguageApi = {
   }
 };
 
-export default {
-  campaignApi,
+const apiService = {
   dashboardApi,
-  emailListApi,
-  recipientApi,
   naturalLanguageApi,
   emailTriggerApi,
   formatApiError,
   isApiError,
 };
+
+export default apiService;

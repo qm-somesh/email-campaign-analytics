@@ -32,19 +32,15 @@ import {
   Pie,
   Cell,
   BarChart,
-  Bar,
-  XAxis,
+  Bar,  XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from 'recharts';
 import { dashboardApi } from '../services/apiService';
 import {
   DashboardMetrics,
-  RecentCampaign,
   RecentEvent,
 } from '../types';
 import {
@@ -128,7 +124,6 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
 const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,14 +134,12 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const [metricsData, campaignsData, eventsData] = await Promise.all([
+        const [metricsData, eventsData] = await Promise.all([
           dashboardApi.getMetrics(),
-          dashboardApi.getRecentCampaigns(5),
           dashboardApi.getRecentEvents(10),
         ]);
 
         setMetrics(metricsData);
-        setRecentCampaigns(campaignsData);
         setRecentEvents(eventsData);
       } catch (err: any) {
         console.error('Error fetching dashboard data:', err);
@@ -189,7 +182,6 @@ const Dashboard: React.FC = () => {
       </Container>
     );
   }
-
   // Prepare chart data
   const performanceData = [
     { name: 'Delivery Rate', value: metrics.overallDeliveryRate, color: '#4caf50' },
@@ -198,36 +190,12 @@ const Dashboard: React.FC = () => {
     { name: 'Bounce Rate', value: metrics.overallBounceRate, color: '#f44336' },
   ];
 
-  const campaignStatusData = recentCampaigns.reduce((acc, campaign) => {
-    const status = campaign.status;
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieChartData = Object.entries(campaignStatusData).map(([status, count]) => ({
-    name: status,
-    value: count,
-  }));
-
-  const chartColors = generateChartColors(pieChartData.length);
-
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Email Campaign Dashboard
-      </Typography>
-
-      {/* Key Metrics */}
+      </Typography>      {/* Key Metrics */}
       <Box display="flex" flexWrap="wrap" gap={3} sx={{ mb: 4 }}>
-        <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
-          <MetricCard
-            title="Total Campaigns"
-            value={metrics.totalCampaigns}
-            icon={<Campaign />}
-            color="#1976d2"
-            subtitle={`${metrics.activeCampaigns} active`}
-          />
-        </Box>
         <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
           <MetricCard
             title="Emails Sent"
@@ -255,19 +223,6 @@ const Dashboard: React.FC = () => {
             subtitle="Overall average"
           />
         </Box>
-      </Box>
-
-      {/* Secondary Metrics */}
-      <Box display="flex" flexWrap="wrap" gap={3} sx={{ mb: 4 }}>
-        <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
-          <MetricCard
-            title="Recipients"
-            value={metrics.totalRecipients}
-            icon={<People />}
-            color="#0288d1"
-            subtitle={`${metrics.activeRecipients} active`}
-          />
-        </Box>
         <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
           <MetricCard
             title="Delivery Rate"
@@ -277,6 +232,10 @@ const Dashboard: React.FC = () => {
             subtitle="Success rate"
           />
         </Box>
+      </Box>
+
+      {/* Secondary Metrics */}
+      <Box display="flex" flexWrap="wrap" gap={3} sx={{ mb: 4 }}>
         <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
           <MetricCard
             title="Bounce Rate"
@@ -319,79 +278,7 @@ const Dashboard: React.FC = () => {
               </BarChart>
             </ResponsiveContainer>
           </Paper>
-        </Box>
-
-        {/* Campaign Status Distribution */}
-        <Box sx={{ flex: '1 1 400px', minWidth: '350px' }}>
-          <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Campaign Status
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={chartColors[index]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-
-        {/* Recent Campaigns */}
-        <Box sx={{ flex: '1 1 400px', minWidth: '350px' }}>
-          <Paper sx={{ p: 3, height: 400, overflow: 'hidden' }}>
-            <Typography variant="h6" gutterBottom>
-              Recent Campaigns
-            </Typography>
-            <List sx={{ maxHeight: 320, overflow: 'auto' }}>              {recentCampaigns.map((campaign, index) => (
-                <React.Fragment key={campaign.campaignId}>
-                  <ListItem>
-                    <ListItemIcon>
-                      <Campaign color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Typography variant="subtitle1" noWrap>
-                            {campaign.name}
-                          </Typography>
-                          <Chip
-                            label={campaign.status}
-                            color={getStatusColor(campaign.status)}
-                            size="small"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            {formatNumber(campaign.totalRecipients)} recipients • {formatPercentage(campaign.deliveredCount > 0 ? (campaign.openedCount / campaign.deliveredCount * 100) : 0)} open • {formatPercentage(campaign.deliveredCount > 0 ? (campaign.clickedCount / campaign.deliveredCount * 100) : 0)} click
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            Campaign ID: {campaign.campaignId}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  {index < recentCampaigns.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          </Paper>
-        </Box>
-
-        {/* Recent Events */}
+        </Box>        {/* Recent Events */}
         <Box sx={{ flex: '1 1 400px', minWidth: '350px' }}>
           <Paper sx={{ p: 3, height: 400, overflow: 'hidden' }}>
             <Typography variant="h6" gutterBottom>

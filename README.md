@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![Material-UI](https://img.shields.io/badge/Material--UI-5.0-blue.svg)](https://mui.com/)
 
-A comprehensive **full-stack email campaign reporting and analytics platform** designed for automotive email marketing campaigns. Built with **React TypeScript frontend** and **.NET 9 Web API backend** with **Google BigQuery** integration for large-scale email campaign data analysis.
+A comprehensive **full-stack email campaign reporting and analytics platform** designed for automotive email marketing campaigns. Built with **React TypeScript frontend** and **.NET 9 Web API backend** with data-driven insights for large-scale email campaign analysis.
 
 ## 🚀 Features
 
@@ -22,7 +22,7 @@ A comprehensive **full-stack email campaign reporting and analytics platform** d
 - Delivery status monitoring
 
 ### 🔍 **Advanced Reporting**
-- BigQuery-powered analytics
+- In-memory data analytics
 - Custom filtering and search
 - Export capabilities
 - Historical trend analysis
@@ -30,10 +30,10 @@ A comprehensive **full-stack email campaign reporting and analytics platform** d
 ### 🛠 **Technical Features**
 - **Backend**: ASP.NET Core Web API (.NET 9)
 - **Frontend**: React 18 with TypeScript
-- **Database**: Google BigQuery for analytics
+- **Database**: In-memory data service with SQL Server integration capability
 - **UI Framework**: Material-UI (MUI) components
 - **API Documentation**: Swagger/OpenAPI
-- **Development**: Mock service for testing without BigQuery
+- **Development**: Mock services for testing
 
 ## 📸 Screenshots
 

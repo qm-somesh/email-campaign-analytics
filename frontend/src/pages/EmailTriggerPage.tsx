@@ -6,11 +6,9 @@ import {
   Paper,
   Button,
   TextField,
-  MenuItem,
-  FormControl,
+  MenuItem,  FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent,
   Alert,
   CircularProgress,
   Chip,
@@ -47,7 +45,6 @@ import {
   EmailTriggerReport,
   EmailTriggerReportFilter,
   EmailTriggerSortField,
-  EmailTriggerRequest,
   EmailTriggerNaturalLanguageResponse,
 } from '../types';
 
@@ -81,17 +78,18 @@ const EmailTriggerPage: React.FC = () => {
   // Dialog state for strategy details
   const [selectedStrategy, setSelectedStrategy] = useState<EmailTriggerReport | null>(null);
   const [strategyDialogOpen, setStrategyDialogOpen] = useState(false);
-
   // Load initial data
   useEffect(() => {
     loadReports();
     loadSummary();
     loadStrategyNames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load reports with current filters
   useEffect(() => {
     loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const loadReports = async () => {

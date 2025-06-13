@@ -27,10 +27,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Configure BigQuery options
-builder.Services.Configure<BigQueryOptions>(
-    builder.Configuration.GetSection(BigQueryOptions.SectionName));
-
 // Configure LLM options
 builder.Services.Configure<LLMOptions>(
     builder.Configuration.GetSection(LLMOptions.SectionName));
@@ -38,22 +34,6 @@ builder.Services.Configure<LLMOptions>(
 // Configure SQL Server options
 builder.Services.Configure<SqlServerOptions>(
     builder.Configuration.GetSection(SqlServerOptions.SectionName));
-
-// Register BigQuery services - use mock service if credentials are not available
-var bigQueryOptions = builder.Configuration.GetSection(BigQueryOptions.SectionName).Get<BigQueryOptions>();
-if (bigQueryOptions?.CredentialsPath != null && 
-    !bigQueryOptions.CredentialsPath.Contains("path/to/your") && 
-    File.Exists(bigQueryOptions.CredentialsPath))
-{
-    builder.Services.AddScoped<IBigQueryService, BigQueryService>();
-}
-else
-{
-    builder.Services.AddScoped<IBigQueryService, MockBigQueryService>();
-}
-
-// Register Campaign Query Service
-builder.Services.AddScoped<ICampaignQueryService, CampaignQueryService>();
 
 // Register SQL Server Trigger Service
 var sqlServerOptions = builder.Configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>();
@@ -70,19 +50,9 @@ else
     builder.Services.AddScoped<ISqlServerTriggerService, MockEmailTriggerService>();
 }
 
-// Register LLM services - Use enhanced service with rule-based fallback
+// Register LLM services - Use MockLLMService since we removed campaign functionality
 var llmOptions = builder.Configuration.GetSection(LLMOptions.SectionName).Get<LLMOptions>();
-if (llmOptions?.ModelPath != null && 
-    !llmOptions.ModelPath.Contains("path/to/your"))
-{
-    // Use regular LLM service for now
-    builder.Services.AddScoped<ILLMService, LLMService>();
-}
-else
-{
-    // Use mock service when model is not available
-    builder.Services.AddScoped<ILLMService, MockLLMService>();
-}
+builder.Services.AddScoped<ILLMService, MockLLMService>();
 
 // Register dedicated Email Trigger Filter Service for natural language filter extraction
 if (llmOptions?.ModelPath != null && 
