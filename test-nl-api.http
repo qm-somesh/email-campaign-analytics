@@ -1,0 +1,9 @@
+POST http://localhost:5037/api/NaturalLanguageEmailTrigger/query
+Content-Type: application/json
+
+{
+  "query": "show me all campaigns",
+  "pageNumber": 1,
+  "pageSize": 10,
+  "includeDebugInfo": true
+}

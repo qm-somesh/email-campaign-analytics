@@ -43,7 +43,7 @@ import apiService from '../services/apiService';
 import {
   EmailTriggerRequest,
   EmailTriggerResponse,
-  EmailTriggerNaturalLanguageResponse,
+  NaturalLanguageEmailTriggerResponse,
 } from '../types';
 
 interface EmailTriggerCampaignProps {
@@ -64,7 +64,7 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
   // Trigger request state
   const [naturalLanguageCommand, setNaturalLanguageCommand] = useState('');
   const [triggerResponse, setTriggerResponse] = useState<EmailTriggerResponse | null>(null);
-  const [nlResponse, setNlResponse] = useState<EmailTriggerNaturalLanguageResponse | null>(null);
+  const [nlResponse, setNlResponse] = useState<NaturalLanguageEmailTriggerResponse | null>(null);
   
   // Advanced options state
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -131,17 +131,16 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
     setLoading(true);
     setError(null);
     
-    try {
-      const response = await apiService.emailTriggerApi.processNaturalLanguageQuery(
+    try {      const response = await apiService.emailTriggerApi.processNaturalLanguageQuery(
         naturalLanguageCommand,
         true
       );
       setNlResponse(response);
       
-      if (response.success) {
+      if (response.filterExtractionSuccessful) {
         handleNext();
       } else {
-        setError(response.error || 'Failed to process command');
+        setError('Failed to extract meaningful filters from command');
       }
     } catch (err: any) {
       setError(apiService.formatApiError(err));
@@ -163,28 +162,32 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
           ...(scheduledTime && { scheduledTime: scheduledTime.toISOString() }),
           ...(selectedStrategy && { strategyName: selectedStrategy }),
         },
-      };
-
-      const response = await apiService.emailTriggerApi.triggerCampaignWithNaturalLanguage(request);
+      };      // Use the new natural language query endpoint for campaign analysis
+      const response = await apiService.emailTriggerApi.processNaturalLanguageQuery(
+        `Analyze campaign potential for: ${naturalLanguageCommand}`,
+        true
+      );
       
-      if (response.success) {        setSuccess(true);
+      if (response.filterExtractionSuccessful) {
+        setSuccess(true);
         setNlResponse(response);
         handleNext();
-        if (onTriggerSuccess && response.triggerReports?.[0]) {
+        if (onTriggerSuccess && response.results?.items?.[0]) {
           // Convert to EmailTriggerResponse format
+          const firstItem = response.results.items[0];
           const triggerResp: EmailTriggerResponse = {
             success: true,
-            strategyName: response.triggerReports[0].strategyName,
-            recipientsCount: response.triggerReports[0].totalEmails,
-            recipientCount: response.triggerReports[0].totalEmails,
-            message: response.explanation || 'Campaign triggered successfully',
+            strategyName: firstItem.strategyName,
+            recipientsCount: firstItem.totalEmails,
+            recipientCount: firstItem.totalEmails,
+            message: response.filterSummary || 'Campaign analysis completed successfully',
             triggeredAt: new Date().toISOString(),
-            metadata: response.parameters,
+            metadata: response.appliedFilters,
           };
           onTriggerSuccess(triggerResp);
         }
       } else {
-        setError(response.error || 'Failed to trigger campaign');
+        setError(response.error || 'Failed to analyze campaign');
       }
     } catch (err: any) {
       setError(apiService.formatApiError(err));
@@ -333,30 +336,28 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
               <Card sx={{ mb: 2 }}>
                 <CardContent>                  <Typography variant="subtitle2" gutterBottom>
                     Processed Command
+                  </Typography>                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {nlResponse.filterSummary}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {nlResponse.explanation || nlResponse.error}
-                  </Typography>
-                  {nlResponse.intent && (
-                    <Typography variant="body2" color="primary" gutterBottom>
-                      Intent: {nlResponse.intent}
-                    </Typography>
-                  )}
                   
-                  {nlResponse.parameters && Object.keys(nlResponse.parameters).length > 0 && (
+                  {nlResponse.appliedFilters && (
                     <Box mt={2}>
                       <Typography variant="subtitle2" gutterBottom>
-                        Extracted Parameters
+                        Applied Filters
                       </Typography>
                       <Box display="flex" gap={1} flexWrap="wrap">
-                        {Object.entries(nlResponse.parameters).map(([key, value]) => (
+                        <Chip
+                          label={`Results: ${nlResponse.results.totalCount}`}
+                          size="small"
+                          variant="outlined"
+                        />
+                        {nlResponse.appliedFilters.strategyName && (
                           <Chip
-                            key={key}
-                            label={`${key}: ${value}`}
+                            label={`Strategy: ${nlResponse.appliedFilters.strategyName}`}
                             size="small"
                             variant="outlined"
                           />
-                        ))}
+                        )}
                       </Box>
                     </Box>
                   )}
@@ -448,27 +449,20 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
               <Card>
                 <CardContent>                  <Typography variant="subtitle2" gutterBottom>
                     Result Details
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    {nlResponse.explanation || nlResponse.error}
-                  </Typography>
-                  {nlResponse.intent && (
-                    <Typography variant="body2" color="primary" gutterBottom>
-                      Intent: {nlResponse.intent}
-                    </Typography>
-                  )}
-                  
-                  {nlResponse.triggerReports && nlResponse.triggerReports.length > 0 && (
+                  </Typography>                  <Typography variant="body2" gutterBottom>
+                    {nlResponse.filterSummary}
+                  </Typography>                  
+                  {nlResponse.results.items && nlResponse.results.items.length > 0 && (
                     <Box mt={2}>
                       <Typography variant="subtitle2" gutterBottom>
                         Campaign Statistics
                       </Typography>
-                      {nlResponse.triggerReports.map((report, index) => (
+                      {nlResponse.results.items.slice(0, 3).map((report, index) => (
                         <Box key={index} mb={1}>                          <Box display="flex" flexWrap="wrap" gap={2}>
                             <Box sx={{ flex: '1 1 200px' }}>
                               <Typography variant="body2">
                                 <PeopleIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                {report.totalEmails.toLocaleString()} recipients
+                                {report.totalEmails.toLocaleString()} emails
                               </Typography>
                             </Box>
                             <Box sx={{ flex: '1 1 200px' }}>
@@ -480,6 +474,11 @@ const EmailTriggerCampaign: React.FC<EmailTriggerCampaignProps> = ({
                           </Box>
                         </Box>
                       ))}
+                      {nlResponse.results.totalCount > 3 && (
+                        <Typography variant="caption" color="text.secondary">
+                          And {nlResponse.results.totalCount - 3} more strategies...
+                        </Typography>
+                      )}
                     </Box>
                   )}
 

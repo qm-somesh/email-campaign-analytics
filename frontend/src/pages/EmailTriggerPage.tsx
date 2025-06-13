@@ -45,7 +45,7 @@ import {
   EmailTriggerReport,
   EmailTriggerReportFilter,
   EmailTriggerSortField,
-  EmailTriggerNaturalLanguageResponse,
+  NaturalLanguageEmailTriggerResponse,
 } from '../types';
 
 const EmailTriggerPage: React.FC = () => {
@@ -73,7 +73,7 @@ const EmailTriggerPage: React.FC = () => {
   // Natural language query state
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState('');
   const [nlQueryLoading, setNlQueryLoading] = useState(false);
-  const [nlQueryResponse, setNlQueryResponse] = useState<EmailTriggerNaturalLanguageResponse | null>(null);
+  const [nlQueryResponse, setNlQueryResponse] = useState<NaturalLanguageEmailTriggerResponse | null>(null);
   
   // Dialog state for strategy details
   const [selectedStrategy, setSelectedStrategy] = useState<EmailTriggerReport | null>(null);
@@ -184,26 +184,25 @@ const EmailTriggerPage: React.FC = () => {
         naturalLanguageQuery,
         true // Include debug info
       );
-      
-      // Debug logging
+        // Debug logging
       console.log('Natural Language Query Response:', response);
-      console.log('Success:', response.success);
-      console.log('Trigger Reports:', response.triggerReports);
-      console.log('Trigger Reports Length:', response.triggerReports?.length);      
+      console.log('Filter Extraction Successful:', response.filterExtractionSuccessful);
+      console.log('Results Items:', response.results.items);
+      console.log('Results Items Length:', response.results.items?.length);      
       setNlQueryResponse(response);
       
       // Debug logging for conditional rendering
       console.log('Rendering conditions after setting response:', {
-        success: response.success,
-        hasTriggerReports: !!response.triggerReports,
-        triggerReportsLength: response.triggerReports?.length,
-        conditionResult: response.success && response.triggerReports && response.triggerReports.length > 0
+        filterExtractionSuccessful: response.filterExtractionSuccessful,
+        hasResultItems: !!response.results.items,
+        resultItemsLength: response.results.items?.length,
+        conditionResult: response.results.items && response.results.items.length > 0
       });
       
       // If the response contains trigger reports, update the main table
-      if (response.triggerReports && response.triggerReports.length > 0) {
-        setReports(response.triggerReports);
-        setTotalCount(response.totalCount || response.triggerReports.length);
+      if (response.results.items && response.results.items.length > 0) {
+        setReports(response.results.items);
+        setTotalCount(response.results.totalCount || response.results.items.length);
       }
     } catch (err: any) {
       setError(apiService.formatApiError(err));
@@ -347,11 +346,10 @@ const EmailTriggerPage: React.FC = () => {
             >
               Query
             </Button>
-          </Box>
-            {nlQueryResponse && (
+          </Box>            {nlQueryResponse && (
             <Box sx={{ mt: 2 }}>
               <Alert 
-                severity={nlQueryResponse.success ? "success" : "error"}
+                severity={nlQueryResponse.filterExtractionSuccessful ? "success" : "warning"}
                 action={
                   <IconButton size="small" onClick={() => setNlQueryResponse(null)}>
                     <ClearIcon />
@@ -359,45 +357,31 @@ const EmailTriggerPage: React.FC = () => {
                 }
               >
                 <Typography variant="body2">
-                  {nlQueryResponse.explanation || nlQueryResponse.error || 'Query processed successfully'}
+                  {nlQueryResponse.filterSummary || 'Query processed successfully'}
                 </Typography>
-                {nlQueryResponse.intent && (
-                  <Typography variant="caption" display="block">
-                    Intent: {nlQueryResponse.intent}
-                  </Typography>
-                )}
                 {nlQueryResponse.processingTimeMs && (
                   <Typography variant="caption" display="block">
                     Processed in {nlQueryResponse.processingTimeMs}ms
                   </Typography>
                 )}
-                
-                {/* Show summary information if available */}
-                {nlQueryResponse.summary && (
+                  {/* Show results count */}
+                {nlQueryResponse.results?.items && nlQueryResponse.results.items.length > 0 && (
                   <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Summary: {nlQueryResponse.summary.totalEmails?.toLocaleString()} emails, {formatRate(nlQueryResponse.summary.deliveryRate)} delivery rate, {formatRate(nlQueryResponse.summary.openRate)} open rate
+                    Found {nlQueryResponse.results.totalCount} total results, showing {nlQueryResponse.results.items.length} on page {nlQueryResponse.results.pageNumber}
                   </Typography>
                 )}
                 
-                {/* Show available strategies count if available */}
-                {nlQueryResponse.availableStrategies && nlQueryResponse.availableStrategies.length > 0 && (
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Found {nlQueryResponse.availableStrategies.length} strategies
-                  </Typography>
-                )}
-                
-                {/* Show trigger reports count if available */}
-                {nlQueryResponse.triggerReports && nlQueryResponse.triggerReports.length > 0 && (
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Found {nlQueryResponse.triggerReports.length} trigger reports (updated table below)
+                {/* Show warnings if any */}
+                {nlQueryResponse.hasWarnings && nlQueryResponse.warnings.length > 0 && (
+                  <Typography variant="caption" display="block" sx={{ mt: 1 }} color="warning.main">
+                    Warnings: {nlQueryResponse.warnings.join(', ')}
                   </Typography>
                 )}              </Alert>
-              
-              {/* Display trigger reports in a compact data grid */}
-              {nlQueryResponse.success && nlQueryResponse.triggerReports && nlQueryResponse.triggerReports.length > 0 && (
+                {/* Display trigger reports in a compact data grid */}
+              {nlQueryResponse.results?.items && nlQueryResponse.results.items.length > 0 && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Query Results ({nlQueryResponse.triggerReports.length} strategies)
+                    Query Results ({nlQueryResponse.results.items.length} strategies)
                   </Typography>
                   <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
                     <Table stickyHeader size="small">
@@ -411,9 +395,8 @@ const EmailTriggerPage: React.FC = () => {
                           <TableCell align="right">Click Rate</TableCell>
                           <TableCell align="right">Bounce Rate</TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {nlQueryResponse.triggerReports.map((report, index) => (
+                      </TableHead>                      <TableBody>
+                        {nlQueryResponse.results?.items?.map((report, index) => (
                           <TableRow 
                             key={`${report.strategyName}-${index}`}
                             hover
@@ -473,78 +456,57 @@ const EmailTriggerPage: React.FC = () => {
                     </Table>
                   </TableContainer>
                 </Box>
-              )}
-              
-              {/* Display available strategies list */}
-              {nlQueryResponse.success && nlQueryResponse.availableStrategies && nlQueryResponse.availableStrategies.length > 0 && !nlQueryResponse.triggerReports && (
+              )}              {/* Display strategy information from applied filters if available */}
+              {nlQueryResponse.appliedFilters?.strategyName && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Available Strategies ({nlQueryResponse.availableStrategies.length})
+                    Strategy Filter Applied
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 200, overflow: 'auto' }}>
-                    {nlQueryResponse.availableStrategies.map((strategy, index) => (
-                      <Chip
-                        key={`${strategy}-${index}`}
-                        label={strategy}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleStrategyClick(strategy)}
-                        sx={{ cursor: 'pointer' }}
-                      />
-                    ))}
+                    <Chip
+                      label={nlQueryResponse.appliedFilters.strategyName}
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                    />
                   </Box>
                 </Box>
               )}
-              
-              {/* Display summary as a card if it's the main result */}
-              {nlQueryResponse.success && nlQueryResponse.summary && !nlQueryResponse.triggerReports && (
+                {/* Display query statistics if available */}
+              {nlQueryResponse.results?.totalCount !== undefined && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Email Trigger Summary
+                    Query Results Summary
                   </Typography>
                   <Card variant="outlined">
                     <CardContent sx={{ py: 1 }}>
                       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
                         <Box textAlign="center">
                           <Typography variant="h6" color="primary">
-                            {nlQueryResponse.summary.totalEmails?.toLocaleString() || 0}
+                            {nlQueryResponse.results.totalCount?.toLocaleString() || 0}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Total Emails
-                          </Typography>
-                        </Box>
-                        <Box textAlign="center">
-                          <Typography variant="h6" color="success.main">
-                            {formatRate(nlQueryResponse.summary.deliveryRate)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Delivery Rate
+                            Total Records Found
                           </Typography>
                         </Box>
                         <Box textAlign="center">
                           <Typography variant="h6" color="info.main">
-                            {formatRate(nlQueryResponse.summary.openRate)}
+                            {nlQueryResponse.results.items?.length || 0}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Open Rate
+                            Records Displayed
                           </Typography>
                         </Box>
-                        <Box textAlign="center">
-                          <Typography variant="h6" color="secondary.main">
-                            {formatRate(nlQueryResponse.summary.clickRate)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Click Rate
-                          </Typography>
-                        </Box>
-                        <Box textAlign="center">
-                          <Typography variant="h6" color="error.main">
-                            {formatRate(nlQueryResponse.summary.bounceRate)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Bounce Rate
-                          </Typography>
-                        </Box>
+                        {nlQueryResponse.appliedFilters && Object.keys(nlQueryResponse.appliedFilters).length > 0 && (
+                          <Box textAlign="center">
+                            <Typography variant="h6" color="secondary.main">
+                              {Object.keys(nlQueryResponse.appliedFilters).length}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Filters Applied
+                            </Typography>
+                          </Box>
+                        )}
                       </Box>
                     </CardContent>
                   </Card>

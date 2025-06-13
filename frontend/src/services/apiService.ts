@@ -10,9 +10,10 @@ import {
   EmailTriggerReport,
   EmailTriggerReportFilter,
   EmailTriggerRequest,
-  EmailTriggerNaturalLanguageResponse,
   EmailTriggerReportsResponse,
-  EmailTriggerSummaryResponse
+  EmailTriggerSummaryResponse,
+  NaturalLanguageEmailTriggerQuery,
+  NaturalLanguageEmailTriggerResponse
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5037/api';
@@ -20,7 +21,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5037/api
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 300000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -125,32 +126,53 @@ const emailTriggerApi = {
     const response = await apiClient.get<EmailTriggerReportsResponse>(
       `/emailtriggerreport/filtered?${params.toString()}`
     );
-    return response.data;
-  },
-
-  // Trigger email campaign via natural language
-  triggerCampaignWithNaturalLanguage: async (
-    request: EmailTriggerRequest
-  ): Promise<EmailTriggerNaturalLanguageResponse> => {
-    const response = await apiClient.post<EmailTriggerNaturalLanguageResponse>(
-      '/emailtriggerreport/trigger',
-      request
-    );
-    return response.data;
-  },
+    return response.data;  },
   // Process natural language query for email triggers
   processNaturalLanguageQuery: async (
     query: string,
     includeDebugInfo: boolean = false
-  ): Promise<EmailTriggerNaturalLanguageResponse> => {
-    const response = await apiClient.post<EmailTriggerNaturalLanguageResponse>(
-      `/NaturalLanguage/triggers/query`,
-      { 
-        query,
-        includeDebugInfo 
+  ): Promise<NaturalLanguageEmailTriggerResponse> => {
+    const request: NaturalLanguageEmailTriggerQuery = {
+      query,
+      pageNumber: 1,
+      pageSize: 50,
+      includeDebugInfo
+    };
+    
+    console.log('API Request:', request);
+    console.log('API URL:', `/NaturalLanguageEmailTrigger/query`);
+    
+    try {
+      const response = await apiClient.post<NaturalLanguageEmailTriggerResponse>(
+        `/NaturalLanguageEmailTrigger/query`,
+        request
+      );
+      console.log('API Response:', response.data);
+      
+      // Validate response structure
+      if (!response.data) {
+        throw new Error('Empty response received from server');
       }
-    );
-    return response.data;
+      
+      if (!response.data.results) {
+        console.warn('Response missing results property:', response.data);
+        // Create a default structure to prevent errors
+        response.data.results = {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 50,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        };
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('API Error in processNaturalLanguageQuery:', error);
+      throw error;
+    }
   }
 };
 
