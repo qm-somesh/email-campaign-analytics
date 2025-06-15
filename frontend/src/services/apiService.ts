@@ -9,7 +9,6 @@ import {
   NaturalLanguageStatus,
   EmailTriggerReport,
   EmailTriggerReportFilter,
-  EmailTriggerRequest,
   EmailTriggerReportsResponse,
   EmailTriggerSummaryResponse,
   NaturalLanguageEmailTriggerQuery,

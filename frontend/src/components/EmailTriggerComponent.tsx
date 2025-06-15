@@ -131,27 +131,7 @@ const EmailTriggerComponent: React.FC<EmailTriggerComponentProps> = ({
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
     }
-    return num.toString();
-  };
-
-  const getPerformanceColor = (rate: number, type: 'open' | 'click' | 'bounce'): 'success' | 'warning' | 'error' | 'default' => {
-    switch (type) {
-      case 'open':
-        if (rate >= 25) return 'success';
-        if (rate >= 15) return 'warning';
-        return 'error';
-      case 'click':
-        if (rate >= 5) return 'success';
-        if (rate >= 2) return 'warning';
-        return 'error';
-      case 'bounce':
-        if (rate <= 2) return 'success';
-        if (rate <= 5) return 'warning';
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+    return num.toString();  };
 
   return (
     <Box>
