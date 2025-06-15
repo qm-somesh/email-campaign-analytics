@@ -208,3 +208,43 @@ StyleCopReport.xml
 Dockerfile
 .dockerignore
 docker-compose*.yml
+
+# ===========================================
+# Performance Optimization Ignores
+# ===========================================
+
+# LLM Models and Large Files (Performance Optimization)
+*.gguf
+*.bin
+*.model
+*.safetensors
+*.pt
+*.pth
+*.weights
+models/
+llm-models/
+*.onnx
+
+# Large Cache and Build Files
+**/.cache/
+**/build/
+**/dist/
+**/.next/
+**/.nuxt/
+
+# Large Log Files and Temp
+*.log
+logs/
+temp/
+tmp/
+**/.temp/
+
+# VS Code Performance
+.vscode/ipch/
+.vs/
+**/*.code-workspace
+
+# Package Manager Cache
+.npm/
+.yarn/
+.pnpm-store/
