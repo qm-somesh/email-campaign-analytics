@@ -14,8 +14,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.2" />    <!-- LLM Integration Packages -->
     <PackageReference Include="LLamaSharp" Version="0.15.0" />
     <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.16.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
-    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+    
+    <!-- Vector/Embedding support for RAG -->
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

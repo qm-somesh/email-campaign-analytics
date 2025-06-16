@@ -1,6 +1,11 @@
 using EmailCampaignReporting.API.Configuration;
 using EmailCampaignReporting.API.Services;
 using EmailCampaignReporting.API.Models.DTOs;
+using EmailCampaignReporting.API.Services.LLM.Abstractions;
+using EmailCampaignReporting.API.Services.LLM;
+using EmailCampaignReporting.API.Services.LLM.Providers;
+using EmailCampaignReporting.API.Services.LLM.RAG;
+using EmailCampaignReporting.API.Services.Enhanced;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,7 +32,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Configure LLM options
+// Configure LLM Provider options (new multi-provider system)
+builder.Services.Configure<LLMProviderOptions>(
+    builder.Configuration.GetSection(LLMProviderOptions.SectionName));
+
+// Configure legacy LLM options (for LLAMA compatibility)
 builder.Services.Configure<LLMOptions>(
     builder.Configuration.GetSection(LLMOptions.SectionName));
 
@@ -54,20 +63,49 @@ else
 var llmOptions = builder.Configuration.GetSection(LLMOptions.SectionName).Get<LLMOptions>();
 builder.Services.AddScoped<ILLMService, MockLLMService>();
 
+// Register LLM Provider System
+// Register LLM providers
+builder.Services.AddHttpClient(); // Required for GeminiLLMProvider
+builder.Services.AddScoped<LlamaLLMProvider>();
+builder.Services.AddScoped<GeminiLLMProvider>();
+
+// Register LLM factory
+builder.Services.AddScoped<ILLMServiceFactory, LLMServiceFactory>();
+
+// Register RAG service
+var llmProviderOptions = builder.Configuration.GetSection(LLMProviderOptions.SectionName).Get<LLMProviderOptions>();
+if (llmProviderOptions?.EnableRAG == true)
+{
+    Console.WriteLine("✅ RAG (Retrieval-Augmented Generation) enabled");
+    builder.Services.AddSingleton<IRAGService, InMemoryRAGService>();
+}
+else
+{
+    Console.WriteLine("ℹ️ RAG (Retrieval-Augmented Generation) disabled");
+}
+
 // Register dedicated Email Trigger Filter Service for natural language filter extraction
+// First register the original LLAMA service for compatibility
 if (llmOptions?.ModelPath != null && 
     !llmOptions.ModelPath.Contains("path/to/your") && 
     File.Exists(llmOptions.ModelPath))
 {
-    Console.WriteLine("✅ Using EmailTriggerFilterService with LLM model");
-    builder.Services.AddScoped<IEmailTriggerFilterService, EmailTriggerFilterService>();
+    Console.WriteLine("✅ LLAMA model available for EmailTriggerFilterService");
+    builder.Services.AddScoped<EmailTriggerFilterService>();
 }
 else
 {
-    Console.WriteLine("⚠️ EmailTriggerFilterService: LLM model not available, service will fail gracefully");
-    // For now, still register the service - it will handle the missing model gracefully
-    builder.Services.AddScoped<IEmailTriggerFilterService, EmailTriggerFilterService>();
+    Console.WriteLine("⚠️ LLAMA model not available, EmailTriggerFilterService will fail gracefully");
+    builder.Services.AddScoped<EmailTriggerFilterService>();
 }
+
+// Register the Enhanced Email Trigger Filter Service (multi-provider with RAG)
+Console.WriteLine("✅ Registering Enhanced Email Trigger Filter Service");
+builder.Services.AddScoped<EnhancedEmailTriggerFilterService>();
+
+// Register the service interface to use the enhanced version
+builder.Services.AddScoped<IEmailTriggerFilterService>(provider => 
+    provider.GetRequiredService<EnhancedEmailTriggerFilterService>());
 
 // Add CORS
 builder.Services.AddCors(options =>
