@@ -250,13 +250,13 @@ namespace EmailCampaignReporting.API.Services.LLM.Providers
                 _logger.LogWarning("Gemini response structure invalid. Candidates={CandidatesCount}, Response={ResponseJson}", 
                     geminiResponse?.Candidates?.Length ?? 0, responseContent);
                 throw new InvalidOperationException("Gemini response did not contain valid text content");
-            }
-            catch (JsonException ex)
+            }            catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to deserialize Gemini API response: {Response}", responseContent);
                 throw new InvalidOperationException($"Invalid JSON response from Gemini API: {ex.Message}");
             }
-        }        
+        }
+
         private string BuildFilterExtractionPrompt(string query, string? context)
         {
             var systemPrompt = """
@@ -287,15 +287,25 @@ namespace EmailCampaignReporting.API.Services.LLM.Providers
                   "explanation": "Brief explanation of extracted filters"
                 }
                 
-                Rules:
+                Critical Rules:
                 - Only set fields that are explicitly mentioned or clearly implied in the query
                 - Use null for unspecified fields
+                - For rate percentages, use whole number values (e.g., 20% = 20, 5% = 5, 2.5% = 2.5)
                 - For date ranges, use ISO format: "2024-01-01T00:00:00Z"
                 - For strategy names, extract exact text mentioned
                 - Return ONLY valid JSON - no markdown formatting, no code blocks, no explanatory text
                 - Start your response directly with { and end with }
                 
-                Example valid response:
+                Query interpretation guidelines:
+                - "above/over/greater than/higher than X%" means minXRatePercentage = X
+                - "below/under/less than/lower than X%" means maxXRatePercentage = X
+                - "between X% and Y%" means minXRatePercentage = X and maxXRatePercentage = Y
+                - "more than X emails" means minTotalEmails = X or minDeliveredCount = X (context dependent)
+                - "high performance" typically means high open/click rates and low bounce rates
+                
+                Example valid responses:
+                {"minOpenRatePercentage": 20, "explanation": "Campaigns with open rate above 20%"}
+                {"minClickRatePercentage": 5, "maxClickRatePercentage": 15, "explanation": "Campaigns with click rate between 5% and 15%"}
                 {"minOpenRatePercentage": 10, "strategyName": "Newsletter", "explanation": "Campaigns with open rate above 10% for Newsletter strategy"}
                 """;
 
@@ -303,7 +313,7 @@ namespace EmailCampaignReporting.API.Services.LLM.Providers
             
             if (!string.IsNullOrEmpty(context))
             {
-                fullPrompt += $"\n\nAdditional Context:\n{context}";
+                fullPrompt += $"\n\n{context}";
             }
             
             fullPrompt += $"\n\nUser Query: {query}\n\nJSON Response:";

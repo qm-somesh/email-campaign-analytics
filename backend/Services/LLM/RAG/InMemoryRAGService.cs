@@ -203,6 +203,54 @@ namespace EmailCampaignReporting.API.Services.LLM.RAG
                     Content = "High-performing campaigns typically have: open rates >20%, click rates >3%, low bounce rates <2%, and good delivery rates >95%. Use these benchmarks when filtering for top performers.",
                     Category = "Performance",
                     Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "rate-percentage-terminology",
+                    Title = "Rate and Percentage Filter Terminology",
+                    Content = "When users mention 'rate above X%', 'rate over X%', 'rate greater than X%', or 'rate higher than X%', they mean minRate >= X. When they say 'rate below X%', 'rate under X%', or 'rate less than X%', they mean maxRate <= X. For 'rate between X% and Y%', use minRate >= X and maxRate <= Y. Convert percentages to decimals (e.g., 20% = 0.2).",
+                    Category = "Query-Patterns",
+                    Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "campaign-filtering-keywords",
+                    Title = "Campaign Filtering Keywords and Synonyms",
+                    Content = "Common filtering terms: 'campaigns' = email campaigns, 'show/find/get/display' = retrieve/filter, 'with/having' = filter condition, 'above/over/greater than/higher than/more than' = minimum threshold, 'below/under/less than/lower than' = maximum threshold, 'between' = range filter, 'good/high/excellent performance' = high rates, 'poor/low/bad performance' = low rates.",
+                    Category = "Query-Patterns", 
+                    Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "email-metrics-synonyms",
+                    Title = "Email Metrics and Their Synonyms",
+                    Content = "Open rate synonyms: open rate, opened rate, opening rate, opens. Click rate synonyms: click rate, clicked rate, clicking rate, clicks, CTR, click-through rate. Bounce rate synonyms: bounce rate, bounced rate, bounces, hard bounce, soft bounce. Delivery rate synonyms: delivery rate, delivered rate, deliverability, delivery success.",
+                    Category = "Metrics",
+                    Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "performance-qualifiers",
+                    Title = "Performance Qualifier Mapping",
+                    Content = "Performance qualifiers and their typical thresholds: 'high performance' = open rate >25%, click rate >5%, bounce rate <2%. 'good performance' = open rate >20%, click rate >3%, bounce rate <3%. 'poor performance' = open rate <15%, click rate <2%, bounce rate >5%. 'excellent/outstanding' = top 10% performers. 'average/standard' = industry benchmarks.",
+                    Category = "Performance",
+                    Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "count-and-volume-filters",
+                    Title = "Count and Volume Filter Patterns",
+                    Content = "Email count filters: 'more than X emails' = minTotalEmails > X, 'delivered count above X' = minDeliveredCount > X, 'opened more than X times' = minOpenedCount > X, 'clicked more than X times' = minClickedCount > X. Volume qualifiers: 'large campaigns' = >10000 emails, 'small campaigns' = <1000 emails, 'medium campaigns' = 1000-10000 emails.",
+                    Category = "Filtering",
+                    Source = "System"
+                },
+                new KnowledgeItem
+                {
+                    Id = "date-and-time-patterns",
+                    Title = "Date and Time Filter Patterns",
+                    Content = "Date filtering patterns: 'last month/week/year' = relative date range, 'since X date' = firstEmailSentFrom >= X, 'before X date' = firstEmailSentTo <= X, 'during/in X period' = date range, 'recent campaigns' = last 30 days, 'this month/year' = current period. Always use ISO format YYYY-MM-DDTHH:mm:ssZ for dates.",
+                    Category = "Filtering",
+                    Source = "System"
                 }
             };
 
@@ -267,53 +315,177 @@ namespace EmailCampaignReporting.API.Services.LLM.RAG
                     }
                 })
                 .ToList();
-        }
-
-        private double CalculateSimpleRelevanceScore(string queryLower, KnowledgeItem knowledge)
+        }        private double CalculateSimpleRelevanceScore(string queryLower, KnowledgeItem knowledge)
         {
             var contentLower = knowledge.Content.ToLowerInvariant();
             var titleLower = knowledge.Title.ToLowerInvariant();
+            var categoryLower = knowledge.Category.ToLowerInvariant();
             
             var queryWords = queryLower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var matchCount = 0;
             var totalWords = queryWords.Length;
+            var exactPhraseBonus = 0.0;
 
+            // Enhanced keyword matching with email campaign specific logic
             foreach (var word in queryWords)
             {
+                var wordScore = 0.0;
+                
+                // Direct word matches
                 if (contentLower.Contains(word) || titleLower.Contains(word))
+                {
+                    wordScore += 1.0;
+                }
+                
+                // Email campaign specific keyword matching
+                wordScore += GetEmailCampaignWordScore(word, contentLower, titleLower);
+                
+                if (wordScore > 0)
                 {
                     matchCount++;
                 }
             }
 
-            // Simple scoring based on word matches
-            var baseScore = totalWords > 0 ? (double)matchCount / totalWords : 0.0;
-            
-            // Boost score for title matches
-            if (titleLower.Contains(queryLower) || queryWords.Any(w => titleLower.Contains(w)))
+            // Check for exact phrase matches (higher relevance)
+            if (contentLower.Contains(queryLower) || titleLower.Contains(queryLower))
             {
-                baseScore += 0.2;
+                exactPhraseBonus = 0.3;
             }
 
-            return Math.Min(1.0, baseScore);
+            // Category-based scoring boost
+            var categoryBonus = GetCategoryBonus(queryLower, categoryLower);
+            
+            // Calculate base score
+            var baseScore = totalWords > 0 ? (double)matchCount / totalWords : 0.0;
+            
+            // Apply bonuses
+            var finalScore = Math.Min(1.0, baseScore + exactPhraseBonus + categoryBonus);
+            
+            return finalScore;
         }
 
-        private string BuildEnhancedQuery(string originalQuery, List<ContextItem> context)
+        private double GetEmailCampaignWordScore(string word, string contentLower, string titleLower)
+        {
+            var score = 0.0;
+            
+            // Percentage and rate related terms
+            if ((word.Contains("rate") || word.Contains("percentage") || word.Contains("%")) && 
+                (contentLower.Contains("rate") || titleLower.Contains("rate")))
+            {
+                score += 0.4;
+            }
+            
+            // Performance qualifiers
+            if ((word.Contains("high") || word.Contains("good") || word.Contains("excellent") || 
+                 word.Contains("poor") || word.Contains("low") || word.Contains("bad")) &&
+                (contentLower.Contains("performance") || titleLower.Contains("performance") || 
+                 contentLower.Contains("benchmark") || titleLower.Contains("benchmark")))
+            {
+                score += 0.3;
+            }
+            
+            // Email metrics (open, click, bounce, delivery)
+            var emailMetrics = new[] { "open", "click", "bounce", "delivery", "delivered" };
+            if (emailMetrics.Any(metric => word.Contains(metric)) &&
+                emailMetrics.Any(metric => contentLower.Contains(metric) || titleLower.Contains(metric)))
+            {
+                score += 0.4;
+            }
+            
+            // Comparative terms
+            var comparativeTerms = new[] { "above", "below", "over", "under", "greater", "less", "between", "more", "higher", "lower" };
+            if (comparativeTerms.Any(term => word.Contains(term)) &&
+                (contentLower.Contains("than") || contentLower.Contains("above") || contentLower.Contains("below") ||
+                 titleLower.Contains("filter") || titleLower.Contains("threshold")))
+            {
+                score += 0.3;
+            }
+            
+            // Count and volume terms
+            if ((word.Contains("count") || word.Contains("number") || word.Contains("volume") || word.Contains("emails")) &&
+                (contentLower.Contains("count") || contentLower.Contains("emails") || contentLower.Contains("volume")))
+            {
+                score += 0.3;
+            }
+            
+            return Math.Min(0.5, score); // Cap individual word bonus
+        }
+
+        private double GetCategoryBonus(string queryLower, string categoryLower)
+        {
+            var bonus = 0.0;
+            
+            // Query pattern matching
+            if ((queryLower.Contains("rate") || queryLower.Contains("percentage") || queryLower.Contains("%")) &&
+                categoryLower == "query-patterns")
+            {
+                bonus += 0.2;
+            }
+            
+            // Metrics queries
+            if ((queryLower.Contains("open") || queryLower.Contains("click") || queryLower.Contains("bounce") || queryLower.Contains("delivery")) &&
+                (categoryLower == "metrics" || categoryLower == "benchmarks"))
+            {
+                bonus += 0.2;
+            }
+            
+            // Performance queries
+            if ((queryLower.Contains("performance") || queryLower.Contains("high") || queryLower.Contains("good") || 
+                 queryLower.Contains("excellent") || queryLower.Contains("poor") || queryLower.Contains("low")) &&
+                categoryLower == "performance")
+            {
+                bonus += 0.2;
+            }
+            
+            // Filtering queries
+            if ((queryLower.Contains("filter") || queryLower.Contains("where") || queryLower.Contains("with") || 
+                 queryLower.Contains("above") || queryLower.Contains("below") || queryLower.Contains("between")) &&
+                categoryLower == "filtering")
+            {
+                bonus += 0.15;
+            }
+            
+            return bonus;
+        }        private string BuildEnhancedQuery(string originalQuery, List<ContextItem> context)
         {
             if (!context.Any())
             {
                 return originalQuery;
             }
 
-            var contextText = string.Join("\n", context.Select(c => $"- {c.Content}"));
+            // Group context by category for better organization
+            var contextByCategory = context
+                .GroupBy(c => c.Metadata.TryGetValue("Category", out var cat) ? cat?.ToString() ?? "General" : "General")
+                .ToDictionary(g => g.Key ?? "General", g => g.ToList());
+
+            var contextSections = new List<string>();
             
-            return $@"Based on the following context about email campaigns:
+            // Add context sections in order of relevance
+            var priorityOrder = new[] { "Query-Patterns", "Metrics", "Performance", "Benchmarks", "Filtering", "Deliverability" };
+            
+            foreach (var category in priorityOrder)
+            {
+                if (contextByCategory.TryGetValue(category, out var items))
+                {
+                    var categoryContent = string.Join("\n", items.Select(item => $"• {item.Content}"));
+                    contextSections.Add($"**{category} Guidelines:**\n{categoryContent}");
+                }
+            }
+            
+            // Add any remaining categories
+            foreach (var kvp in contextByCategory.Where(kvp => !priorityOrder.Contains(kvp.Key)))
+            {
+                var categoryContent = string.Join("\n", kvp.Value.Select(item => $"• {item.Content}"));
+                contextSections.Add($"**{kvp.Key}:**\n{categoryContent}");
+            }
 
-{contextText}
+            var enhancedContext = string.Join("\n\n", contextSections);
+            
+            return $@"Email Campaign Knowledge Context:
+{enhancedContext}
 
-User query: {originalQuery}
-
-Please extract filter parameters considering this context.";
+Based on this knowledge, please extract filter parameters from the following query:
+{originalQuery}";
         }
 
         private double CalculateConfidenceScore(List<ContextItem> context)
