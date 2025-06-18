@@ -6,6 +6,7 @@ using EmailCampaignReporting.API.Services.LLM;
 using EmailCampaignReporting.API.Services.LLM.Providers;
 using EmailCampaignReporting.API.Services.LLM.RAG;
 using EmailCampaignReporting.API.Services.Enhanced;
+using EmailCampaignReporting.API.Services.NaturalSqlRAG;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -43,6 +44,10 @@ builder.Services.Configure<LLMOptions>(
 // Configure SQL Server options
 builder.Services.Configure<SqlServerOptions>(
     builder.Configuration.GetSection(SqlServerOptions.SectionName));
+
+// Configure Gemini options by pointing to the correct section within LLMProviderOptions
+builder.Services.Configure<GeminiOptions>(
+    builder.Configuration.GetSection($"{LLMProviderOptions.SectionName}:Gemini"));
 
 // Register SQL Server Trigger Service
 var sqlServerOptions = builder.Configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>();
@@ -106,6 +111,26 @@ builder.Services.AddScoped<EnhancedEmailTriggerFilterService>();
 // Register the service interface to use the enhanced version
 builder.Services.AddScoped<IEmailTriggerFilterService>(provider => 
     provider.GetRequiredService<EnhancedEmailTriggerFilterService>());
+
+// Register Natural Language SQL Query RAG services
+builder.Services.AddSingleton<INaturalSqlRagService, InMemoryNaturalSqlRagService>();
+builder.Services.AddHttpClient<GeminiSqlGeneratorService>();
+
+// Register orchestrator with config
+builder.Services.AddScoped<NaturalLanguageSqlQueryOrchestrator>(provider =>
+{
+    var ragService = provider.GetRequiredService<INaturalSqlRagService>();
+    var geminiService = provider.GetRequiredService<GeminiSqlGeneratorService>();
+    var logger = provider.GetRequiredService<ILogger<NaturalLanguageSqlQueryOrchestrator>>();
+    var config = provider.GetRequiredService<IConfiguration>();
+    var connectionString = config.GetConnectionString("DefaultConnection")
+        ?? config.GetSection("SqlServerOptions:ConnectionString").Value;
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    }
+    return new NaturalLanguageSqlQueryOrchestrator(ragService, geminiService, connectionString, logger);
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
