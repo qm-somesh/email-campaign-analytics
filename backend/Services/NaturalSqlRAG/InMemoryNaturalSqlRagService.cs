@@ -50,10 +50,21 @@ namespace EmailCampaignReporting.API.Services.NaturalSqlRAG
             "For 'low bounce rates' queries: ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC",
             "For 'most emails sent' queries: ORDER BY COUNT(DISTINCT eo.EmailOutboxId) DESC",
             "For alphabetical sorting: ORDER BY et.Description ASC",
-            
-            // Performance filtering patterns
+              // Performance filtering patterns
             "For campaigns with 'high open rates': Add HAVING clause like 'HAVING SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'",
             "For campaigns with 'significant volume': Add HAVING clause like 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10'",
+            "For 'successful campaigns': Add HAVING clause like 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND COUNT(DISTINCT eo.EmailOutboxId) >= 5'",
+            "For 'most successful campaigns': Add HAVING clause like 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'",
+            "For 'best campaigns': Add HAVING clause to filter out campaigns with 0 deliveries: 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'",
+            "For 'top performing campaigns': Add HAVING clause like 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10 AND SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'",            "For 'effective campaigns': Add HAVING clause like 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) > 0.1'",
+            "ALWAYS exclude campaigns with 0 deliveries when user asks for 'successful', 'best', 'top', 'effective', or 'performing' campaigns",            // Problematic campaign filtering patterns
+            "For 'problematic campaigns': Add HAVING clause like 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status IN (''bounced'', ''failed'') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) > 0.05 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.5'",
+            "For 'campaigns with issues': Add HAVING clause to identify inactive or poor performing: 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) < 0.95'",
+            "For 'underperforming campaigns': Add HAVING clause like 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.6'",
+            "For 'campaigns with delivery issues': Add HAVING clause like 'HAVING (CAST(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) < 0.95 OR COUNT(DISTINCT eo.EmailOutboxId) = 0'",
+            "For 'campaigns that need improvement': Add HAVING clause to find inactive or below-average performers: 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.8'",
+            "For 'poor performing campaigns': Add HAVING clause like 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.5'",
+            "ALWAYS filter for inactive campaigns (0 emails) and poor metrics when user asks for 'problematic', 'issues', 'underperforming', 'poor', or 'need improvement' campaigns",
             
             // Example complete queries for reference
             "Example for 'campaigns with high open rates last month': Include date filter 'AND eo.DateCreated >= DATEADD(month, -1, GETDATE())' and order by open rate DESC",
@@ -112,10 +123,29 @@ namespace EmailCampaignReporting.API.Services.NaturalSqlRAG
             else if (query.Contains("most email") || query.Contains("highest volume"))
             {
                 relevantContext.AddRange(_knowledgeBase.Where(kb => kb.Contains("most emails sent")));
+            }            // Add performance filtering if needed
+            if (query.Contains("successful") || query.Contains("best") || query.Contains("top") || 
+                query.Contains("effective") || query.Contains("performing"))
+            {
+                relevantContext.AddRange(_knowledgeBase.Where(kb => 
+                    kb.Contains("successful campaigns") || 
+                    kb.Contains("best campaigns") || 
+                    kb.Contains("top performing") ||
+                    kb.Contains("effective campaigns") ||
+                    kb.Contains("ALWAYS exclude campaigns with 0 deliveries")));
+            }            else if (query.Contains("problematic") || query.Contains("issues") || query.Contains("underperforming") ||
+                     query.Contains("poor") || query.Contains("need improvement") || query.Contains("delivery issues"))
+            {
+                relevantContext.AddRange(_knowledgeBase.Where(kb => 
+                    kb.Contains("problematic campaigns") || 
+                    kb.Contains("campaigns with issues") || 
+                    kb.Contains("underperforming campaigns") ||
+                    kb.Contains("campaigns with delivery issues") ||
+                    kb.Contains("campaigns that need improvement") ||
+                    kb.Contains("poor performing campaigns") ||
+                    kb.Contains("ALWAYS filter for inactive campaigns")));
             }
-            
-            // Add performance filtering if needed
-            if (query.Contains("high") || query.Contains("top") || query.Contains("best"))
+            else if (query.Contains("high") || query.Contains("significant"))
             {
                 relevantContext.AddRange(_knowledgeBase.Where(kb => kb.Contains("Performance filtering")));
             }

@@ -78,6 +78,18 @@ IMPORTANT: Pay attention to performance-based requests:
 - If user wants 'high click rates': ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
 - If user wants 'low bounce rates': ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC
 
+IMPORTANT: Pay attention to filtering requirements:
+- If user asks for 'successful', 'best', 'top', 'effective', or 'performing' campaigns: ADD HAVING clause to exclude poor performers
+- For 'most successful': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'
+- For 'best campaigns': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
+- For 'top performing': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10 AND SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
+
+IMPORTANT: Pay attention to problematic campaign requests:
+- If user asks for 'problematic', 'issues', 'underperforming', 'poor', or 'need improvement' campaigns: ADD HAVING clause to identify poor performers
+- For 'problematic campaigns': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status IN (''bounced'', ''failed'') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) > 0.05 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.5'
+- For 'underperforming': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) = 0 OR (CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)) < 0.6'
+- For 'delivery issues': ADD 'HAVING (CAST(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) < 0.95 OR COUNT(DISTINCT eo.EmailOutboxId) = 0'
+
 {requiredColumns}
 
 SCHEMA:
