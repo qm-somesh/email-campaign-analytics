@@ -41,5 +41,32 @@ namespace EmailCampaignReporting.API.Controllers
                 return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
+
+        [HttpPost("debug-context")]
+        [ProducesResponseType(typeof(List<string>), 200)]
+        public async Task<IActionResult> GetDebugContext(
+            [FromBody] string query,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Access the RAG service through the orchestrator's private field using reflection
+                var ragServiceField = typeof(NaturalLanguageSqlQueryOrchestrator)
+                    .GetField("_ragService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                
+                if (ragServiceField?.GetValue(_orchestrator) is INaturalSqlRagService ragService)
+                {
+                    var context = await ragService.GetContextForSqlAsync(query, 10); // Get top 10 items
+                    return Ok(new { Query = query, Context = context });
+                }
+                
+                return BadRequest("Could not access RAG service");
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error getting debug context for query: {Query}", query);
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
     }
 }

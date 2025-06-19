@@ -10,6 +10,8 @@ using EmailCampaignReporting.API.Services.NaturalSqlRAG;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using Microsoft.Extensions.AI;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -112,8 +114,17 @@ builder.Services.AddScoped<EnhancedEmailTriggerFilterService>();
 builder.Services.AddScoped<IEmailTriggerFilterService>(provider => 
     provider.GetRequiredService<EnhancedEmailTriggerFilterService>());
 
-// Register Natural Language SQL Query RAG services
-builder.Services.AddSingleton<INaturalSqlRagService, InMemoryNaturalSqlRagService>();
+// Register embeddings service for semantic RAG
+// For now, use a simple mock embeddings service for demonstration
+// In production, you would configure a real embeddings service
+builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(provider =>
+{
+    return new MockEmbeddingService();
+});
+
+// Register semantic RAG service
+builder.Services.AddSingleton<INaturalSqlRagService, SemanticNaturalSqlRagService>();
+
 builder.Services.AddHttpClient<GeminiSqlGeneratorService>();
 
 // Register orchestrator with config
