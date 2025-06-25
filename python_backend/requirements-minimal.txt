@@ -1,0 +1,25 @@
+# Core Web Framework (Required)
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP Client (Required)
+httpx==0.25.2
+
+# Utilities (Required)
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# Database (Optional - comment out if no database)
+sqlalchemy==2.0.23
+# pyodbc==5.0.1
+
+# AI and ML (Optional - will use mocks if not available)
+# sentence-transformers==2.2.2
+# scikit-learn==1.3.2
+# numpy==1.25.2
+
+# Development
+pytest==7.4.3
+black==23.11.0
