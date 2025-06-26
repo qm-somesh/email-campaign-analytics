@@ -85,15 +85,24 @@ IMPORTANT: Pay attention to time-based requests:
 - If user mentions 'recent', 'latest': ADD appropriate date filter
 
 IMPORTANT: Pay attention to performance-based requests:
-- If user wants 'high open rates', 'best open': ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) DESC
-- If user wants 'high click rates': ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
-- If user wants 'low bounce rates': ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC
+- If user wants 'high open rates', 'best open rates', 'highest open rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
+- If user wants 'high click rates', 'best click rates', 'highest click rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
+- If user wants 'low bounce rates', 'best delivery rates': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10' AND ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC
+- If user wants 'click rates less than X%' or 'low click rates': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.05' (for 5%) AND ORDER BY COALESCE((CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)), 0) ASC
+- If user wants 'open rates less than X%' or 'low open rates': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.X' (replace X with user's percentage/100) AND ORDER BY COALESCE((CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)), 0) ASC
+- If user wants 'bounce rates greater than X%' or 'high bounce rates': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) > 0 AND (CAST(SUM(CASE WHEN st.Status IN (''bounced'', ''failed'') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) > 0.X'
 
 IMPORTANT: Pay attention to filtering requirements:
 - If user asks for 'successful', 'best', 'top', 'effective', or 'performing' campaigns: ADD HAVING clause to exclude poor performers
 - For 'most successful': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'
 - For 'best campaigns': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
 - For 'top performing': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10 AND SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
+- For 'highest click rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) > 0'
+- For 'highest open rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'
+- For 'best performing' or 'top campaigns': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 5 AND SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
+- For 'click rates less than 5%': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.05'
+- For 'open rates less than X%': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.X' (replace X with percentage/100)
+- For 'delivery rates less than X%': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)), 0) < 0.X'
 
 IMPORTANT: Pay attention to problematic campaign requests:
 - If user asks for 'problematic', 'issues', 'underperforming', 'poor', or 'need improvement' campaigns: ADD HAVING clause to identify poor performers
