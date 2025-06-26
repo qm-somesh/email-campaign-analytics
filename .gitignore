@@ -213,7 +213,7 @@ docker-compose*.yml
 # Performance Optimization Ignores
 # ===========================================
 
-# LLM Models and Large Files (Performance Optimization)
+# LLM Models and Large Files (Performance Optimization) - but keep Python model/DTO files
 *.gguf
 *.bin
 *.model
@@ -221,8 +221,10 @@ docker-compose*.yml
 *.pt
 *.pth
 *.weights
-models/
+# Exclude AI model directories but not Python app models
+ai-models/
 llm-models/
+ml-models/
 *.onnx
 
 # Large Cache and Build Files

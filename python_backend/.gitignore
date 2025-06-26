@@ -33,8 +33,9 @@ ENV/
 .env.local
 .env.production
 
-# IDEs
-.vscode/
+# IDEs (keep launch.json and settings.json for debugging)
+.vscode/settings.json
+.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -66,10 +67,17 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints
 
-# Models (large files)
-models/
+# AI Models (large binary files only - exclude AI model binaries but keep Python model files)
 *.model
 *.bin
+*.pkl
+*.joblib
+*.h5
+*.onnx
+*.pb
+*.pth
+*.pt
+*.safetensors
 
 # Temporary files
 *.tmp

@@ -175,8 +175,12 @@ Generate the SQL query now:"""
             db: Session = next(db_gen)
             
             try:
-                # Get total count first
-                count_sql = f"SELECT COUNT(*) as total_count FROM ({sql.replace(' OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY', '')}) AS CountQuery"
+                # Get total count first - remove ORDER BY and pagination for count query
+                count_sql_base = sql.replace(' OFFSET :offset ROWS FETCH NEXT :page_size ROWS ONLY', '')
+                # Remove ORDER BY clause from count query as it's not allowed in subqueries in SQL Server
+                # This regex matches ORDER BY and everything after it until the end of the string
+                count_sql_base = re.sub(r'\s+ORDER\s+BY\s+.*$', '', count_sql_base, flags=re.IGNORECASE)
+                count_sql = f"SELECT COUNT(*) as total_count FROM ({count_sql_base}) AS CountQuery"
                 count_result = db.execute(text(count_sql), {"offset": offset, "page_size": page_size})
                 total_count = count_result.scalar()
                 
