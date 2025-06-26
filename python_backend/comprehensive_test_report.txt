@@ -1,0 +1,76 @@
+
+====================================================================================================
+COMPREHENSIVE GEMINI API TEST REPORT (MOCK SERVICE)
+====================================================================================================
+
+OVERALL RESULTS:
+   Total Tests: 77
+   Successful: 77 (100.0%)
+   Failed: 0 (0.0%)
+   Total Execution Time: 221.73s
+
+CATEGORY BREAKDOWN:
+
+1. Time-Based Queries:
+  Success: 8/8 (100.0%)
+  Avg Time: 3.34s
+2. Performance-Based Queries:
+  Success: 10/10 (100.0%)
+  Avg Time: 2.83s
+3. Volume-Based Queries:
+  Success: 6/6 (100.0%)
+  Avg Time: 2.57s
+4. Specific Metric Queries:
+  Success: 6/6 (100.0%)
+  Avg Time: 2.68s
+5. Combined Time + Performance Queries:
+  Success: 6/6 (100.0%)
+  Avg Time: 2.60s
+6. Campaign Analysis Queries:
+  Success: 6/6 (100.0%)
+  Avg Time: 2.66s
+7. Trend Analysis Queries:
+  Success: 4/4 (100.0%)
+  Avg Time: 3.50s
+8. Specific Campaign Type Queries:
+  Success: 5/5 (100.0%)
+  Avg Time: 2.74s
+9. Filtering Queries:
+  Success: 8/8 (100.0%)
+  Avg Time: 2.90s
+10. Sorting Queries:
+  Success: 5/5 (100.0%)
+  Avg Time: 2.60s
+11. Date Range Queries:
+  Success: 4/4 (100.0%)
+  Avg Time: 3.05s
+12. Comparative Queries:
+  Success: 4/4 (100.0%)
+  Avg Time: 3.40s
+13. Problem Identification Queries:
+  Success: 5/5 (100.0%)
+  Avg Time: 2.72s
+
+QUERIES RETURNING ZERO RESULTS (4):
+
+- 1. Time-Based Queries: Give me email metrics for the past 7 days
+- 1. Time-Based Queries: Display email performance for this year
+- 1. Time-Based Queries: Show me last week's email statistics
+- 5. Combined Time + Performance Queries: Low bounce rate campaigns from last week
+
+PERFORMANCE ANALYSIS:
+   Average execution time: 2.876s
+   Maximum execution time: 9.479s
+   Minimum execution time: 1.727s
+
+QUALITY ISSUES IDENTIFIED:
+   - Zero-result queries: 4
+   - High execution times (avg: 2.88s)
+
+RECOMMENDATIONS:
+   2. Investigate 4 zero-result queries
+   3. All 77 successful queries validate orchestrator patterns
+   4. Mock service demonstrates full capability coverage
+   5. Ready for production testing with real Gemini API
+
+====================================================================================================

@@ -82,7 +82,10 @@ IMPORTANT: Pay attention to time-based requests:
 - If user mentions 'last month', 'past month': ADD 'AND eo.DateCreated >= DATEADD(month, -1, GETDATE())'
 - If user mentions 'last week', 'past week': ADD 'AND eo.DateCreated >= DATEADD(week, -1, GETDATE())'
 - If user mentions 'last N days': ADD 'AND eo.DateCreated >= DATEADD(day, -N, GETDATE())'
-- If user mentions 'recent', 'latest': ADD appropriate date filter
+- If user mentions 'recent', 'latest': ADD 'AND eo.DateCreated >= DATEADD(day, -30, GETDATE())'
+- If user mentions 'this week': ADD 'AND eo.DateCreated >= DATEADD(week, 0, GETDATE())'
+- If user mentions 'this month': ADD 'AND eo.DateCreated >= DATEADD(month, 0, GETDATE())'
+- If user mentions 'this year': ADD 'AND eo.DateCreated >= DATEADD(year, 0, GETDATE())'
 
 IMPORTANT: Pay attention to performance-based requests:
 - If user wants 'high open rates', 'best open rates', 'highest open rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
