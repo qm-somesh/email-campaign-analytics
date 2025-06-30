@@ -63,7 +63,8 @@ async def post_sql_query(
     This endpoint accepts a natural language query, converts it to SQL using RAG and AI,
     executes the query against the email campaign database, and returns paginated results.
     """
-    # 🐛 DEBUG: Request received
+    # � BREAKPOINT: Set VS Code breakpoint on the next line!
+    # �🐛 DEBUG: Request received
     print(f"🚀 API Request received: '{request.query}' (Page: {request.page_number}, Size: {request.page_size})")
     
     try:
@@ -76,6 +77,7 @@ async def post_sql_query(
         
         logger.info(f"Processing natural language query: {request.query}")
         
+        # 🔥 BREAKPOINT: Another good spot for a breakpoint!
         # 🐛 DEBUG: Before orchestrator call
         print(f"🤖 Calling orchestrator with query: '{request.query}'")
         
@@ -85,6 +87,7 @@ async def post_sql_query(
             request.page_size
         )
         
+        # 🔥 BREAKPOINT: Check the result here!
         # 🐛 DEBUG: After orchestrator call
         print(f"✅ Orchestrator completed successfully")
         print(f"📊 Result type: {type(result).__name__}")

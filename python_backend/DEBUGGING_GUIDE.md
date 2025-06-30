@@ -170,6 +170,12 @@ import ipdb; ipdb.set_trace()
 
 ## VS Code Debugging
 
+### ⚠️ **IMPORTANT: Breakpoint Issue with --reload**
+
+**Problem**: When using `--reload` with uvicorn, VS Code breakpoints don't work because uvicorn spawns a child process that the debugger can't attach to.
+
+**Solution**: Use the "No Reload" debug configuration for breakpoint debugging.
+
 ### 1. Create Debug Configuration
 
 Create `.vscode/launch.json`:
@@ -179,31 +185,36 @@ Create `.vscode/launch.json`:
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug FastAPI",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/start.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "args": []
-        },
-        {
-            "name": "Debug FastAPI (Advanced)",
-            "type": "python",
+            "name": "🎯 Debug FastAPI (No Reload) - BREAKPOINTS WORK",
+            "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
             "args": [
                 "app.main:app",
                 "--host", "0.0.0.0",
                 "--port", "8000",
-                "--reload"
+                "--log-level", "debug"
             ],
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
+                "PYTHONPATH": "${workspaceFolder}",
+                "DEBUG": "true"
+            },
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "🔄 Debug FastAPI (With Reload) - NO BREAKPOINTS",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/start_debug_no_reload.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DEBUG": "true"
+            },
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
@@ -211,13 +222,37 @@ Create `.vscode/launch.json`:
 
 ### 2. Using VS Code Debugger
 
-1. **Set Breakpoints**: Click left of line numbers (red dots)
-2. **Start Debugging**: Press F5 or use Debug menu
-3. **Debug Controls**:
+**For Breakpoint Debugging:**
+1. Use "🎯 Debug FastAPI (No Reload)" configuration
+2. Set breakpoints by clicking left of line numbers (red dots)
+3. Start debugging: Press F5
+4. Trigger endpoints through Swagger UI: http://localhost:8000/docs
+5. Breakpoints will hit! ✅
+
+**For Development with Auto-Reload:**
+1. Use "🔄 Debug FastAPI (With Reload)" for regular development
+2. Code changes auto-restart server
+3. Use print statements instead of breakpoints
+
+### 3. Debug Controls in VS Code:
    - F10 - Step over (next line)
    - F11 - Step into (enter function)
    - Shift+F11 - Step out (exit function)
    - F5 - Continue
+   - Shift+F5 - Stop debugging
+
+### 4. Debugging Workflow:
+
+**Option A: Full Breakpoint Debugging (Recommended)**
+1. Start with "🎯 Debug FastAPI (No Reload)"
+2. Set breakpoints in your code
+3. Test via Swagger UI
+4. Manually restart when you change code
+
+**Option B: Print + Reload Debugging**
+1. Start with "🔄 Debug FastAPI (With Reload)"  
+2. Use print statements for debugging
+3. Code changes auto-restart server
 
 ---
 
