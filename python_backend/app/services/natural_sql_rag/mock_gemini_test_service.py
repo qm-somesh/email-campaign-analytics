@@ -30,11 +30,16 @@ class MockGeminiTestService(IGeminiSqlGeneratorService):
             r'last (\d+) days|past (\d+) days': self._get_last_n_days_sql,
             r'this year': self._get_this_year_sql,
             
-            # Performance-based queries
+            # Performance-based queries (best/highest)
             r'highest click rates|best click rates': self._get_highest_click_rates_sql,
             r'highest open rates|best open rates': self._get_highest_open_rates_sql,
             r'best performing|top performing|most successful': self._get_best_performing_sql,
             r'low bounce rates|best delivery': self._get_low_bounce_sql,
+            
+            # Performance-based queries (worst/lowest)
+            r'lowest click rates|worst click rates': self._get_lowest_click_rates_sql,
+            r'lowest open rates|worst open rates|least.*open rate': self._get_lowest_open_rates_sql,
+            r'worst performing|bottom performing|least successful': self._get_worst_performing_sql,
             
             # Filtering queries
             r'click rates less than (\d+)%?': self._get_click_rates_less_than_sql,
@@ -117,6 +122,18 @@ class MockGeminiTestService(IGeminiSqlGeneratorService):
     def _get_low_bounce_sql(self, query: str, match=None) -> str:
         """Low bounce rates"""
         return f"{self.base_select} {self.base_group_by} HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10 ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC"
+    
+    def _get_lowest_click_rates_sql(self, query: str, match=None) -> str:
+        """Lowest click rates"""
+        return f"{self.base_select} {self.base_group_by} HAVING SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC"
+    
+    def _get_lowest_open_rates_sql(self, query: str, match=None) -> str:
+        """Lowest open rates"""
+        return f"{self.base_select} {self.base_group_by} HAVING SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC"
+    
+    def _get_worst_performing_sql(self, query: str, match=None) -> str:
+        """Worst performing campaigns"""
+        return f"{self.base_select} {self.base_group_by} HAVING SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) > 0 ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC"
     
     def _get_click_rates_less_than_sql(self, query: str, match) -> str:
         """Click rates less than X%"""

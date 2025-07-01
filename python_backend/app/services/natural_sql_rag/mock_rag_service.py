@@ -31,7 +31,10 @@ class MockNaturalSqlRagService(INaturalSqlRagService):
             # Performance sorting
             "For 'high open rates' queries: ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) DESC",
             "For 'best performing' queries: ORDER BY open rate descending",
-            "For 'high click rates' queries: ORDER BY click rate descending"
+            "For 'high click rates' queries: ORDER BY click rate descending",
+            "For 'lowest open rates' queries: ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC",
+            "For 'worst performing' queries: ORDER BY open rate ascending",
+            "For 'lowest click rates' queries: ORDER BY click rate ascending"
         ]
         logger.info(f"Mock RAG service initialized with {len(self.knowledge_base)} knowledge items")
     
@@ -55,6 +58,11 @@ class MockNaturalSqlRagService(INaturalSqlRagService):
             performance_keywords = ['high', 'best', 'top', 'good', 'excellent', 'perform']
             if any(keyword in query_lower for keyword in performance_keywords):
                 relevant_items.extend([item for item in self.knowledge_base if 'ORDER BY' in item or 'performing' in item.lower()])
+            
+            # Low performance keywords  
+            low_performance_keywords = ['least', 'lowest', 'worst', 'bottom', 'poor', 'bad']
+            if any(keyword in query_lower for keyword in low_performance_keywords):
+                relevant_items.extend([item for item in self.knowledge_base if 'ASC' in item or 'ascending' in item.lower() or 'worst' in item.lower() or 'lowest' in item.lower()])
             
             # Always include core requirements
             core_items = [item for item in self.knowledge_base if 'ALL queries MUST' in item or 'Always' in item]

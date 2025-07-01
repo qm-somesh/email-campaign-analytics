@@ -34,8 +34,14 @@ class NaturalLanguageSqlQueryOrchestrator(INaturalLanguageSqlQueryOrchestrator):
             raw_response = await self.gemini_service.generate_sql_async(prompt)
             generated_sql = self._extract_and_validate_sql(raw_response)
             
+            # Debug logging for SQL generation
+            logger.info(f"🔍 DEBUG: Full generated SQL: {generated_sql}")
+            print(f"🔍 DEBUG: Full generated SQL: {generated_sql}")
+            
             # 4. Add pagination if not present
             final_sql = self._add_pagination_to_sql(generated_sql)
+            logger.info(f"🔍 DEBUG: Final SQL with pagination: {final_sql}")
+            print(f"🔍 DEBUG: Final SQL with pagination: {final_sql}")
             
             # 5. Execute SQL and return results
             logger.info("Executing generated SQL query")
@@ -89,7 +95,9 @@ IMPORTANT: Pay attention to time-based requests:
 
 IMPORTANT: Pay attention to performance-based requests:
 - If user wants 'high open rates', 'best open rates', 'highest open rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
+- If user wants 'low open rates', 'lowest open rates', 'least open rates', 'worst open rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC
 - If user wants 'high click rates', 'best click rates', 'highest click rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) DESC
+- If user wants 'low click rates', 'lowest click rates', 'least click rates', 'worst click rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC
 - If user wants 'low bounce rates', 'best delivery rates': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10' AND ORDER BY (CAST(SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(COUNT(DISTINCT eo.EmailOutboxId), 0)) ASC
 - If user wants 'click rates less than X%' or 'low click rates': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.05' (for 5%) AND ORDER BY COALESCE((CAST(SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)), 0) ASC
 - If user wants 'open rates less than X%' or 'low open rates': ADD 'HAVING COALESCE((CAST(SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END), 0)), 0) < 0.X' (replace X with user's percentage/100) AND ORDER BY COALESCE((CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)), 0) ASC
@@ -97,7 +105,9 @@ IMPORTANT: Pay attention to performance-based requests:
 
 IMPORTANT: Pay attention to filtering requirements:
 - If user asks for 'successful', 'best', 'top', 'effective', or 'performing' campaigns: ADD HAVING clause to exclude poor performers
+- If user asks for 'least', 'worst', 'lowest', 'bottom' performing campaigns: ORDER BY performance metrics ASC (ascending) to get worst first
 - For 'most successful': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''opened'' THEN 1 ELSE 0 END) > 0'
+- For 'least successful' or 'worst performing': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0' AND ORDER BY (CAST(SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END), 0)) ASC
 - For 'best campaigns': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
 - For 'top performing': ADD 'HAVING COUNT(DISTINCT eo.EmailOutboxId) >= 10 AND SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0'
 - For 'highest click rates': ADD 'HAVING SUM(CASE WHEN st.Status = ''delivered'' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN st.Status = ''clicked'' THEN 1 ELSE 0 END) > 0'

@@ -8,6 +8,8 @@ from ..services.natural_sql_rag.orchestrator import NaturalLanguageSqlQueryOrche
 from ..services.natural_sql_rag.rag_service import SemanticNaturalSqlRagService
 from ..services.natural_sql_rag.mock_rag_service import MockNaturalSqlRagService
 from ..services.natural_sql_rag.gemini_service import GeminiSqlGeneratorService
+from ..services.natural_sql_rag.mock_gemini_test_service import MockGeminiTestService
+from ..config.settings import settings
 from ..utils.exceptions import ValidationException, AIServiceException, DatabaseException
 
 logger = logging.getLogger(__name__)
@@ -28,16 +30,21 @@ def get_rag_service():
         logger.warning(f"AI libraries not available, using mock RAG service: {e}")
         return MockNaturalSqlRagService()
 
-def get_gemini_service() -> GeminiSqlGeneratorService:
+def get_gemini_service():
     # 🐛 DEBUG: Gemini service creation
     print("🔍 Creating Gemini service...")
-    service = GeminiSqlGeneratorService()
+    if not settings.gemini_api_key:
+        print("🔍 DEBUG: No Gemini API key found, using MockGeminiTestService for pattern matching...")
+        service = MockGeminiTestService()
+    else:
+        print("🔍 DEBUG: Using real GeminiSqlGeneratorService with API key...")
+        service = GeminiSqlGeneratorService()
     print(f"✅ Gemini service created: {type(service).__name__}")
     return service
 
 def get_orchestrator(
     rag_service: SemanticNaturalSqlRagService = Depends(get_rag_service),
-    gemini_service: GeminiSqlGeneratorService = Depends(get_gemini_service)
+    gemini_service = Depends(get_gemini_service)
 ) -> NaturalLanguageSqlQueryOrchestrator:
     # 🐛 DEBUG: Orchestrator creation
     print("🔍 Creating orchestrator...")
