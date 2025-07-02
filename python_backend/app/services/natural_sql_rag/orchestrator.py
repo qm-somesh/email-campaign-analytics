@@ -72,6 +72,9 @@ Table: EmailStatus (st) - StatusId, Status (values: 'delivered', 'bounced', 'fai
         
         example_sql = """SELECT et.Description AS StrategyName, COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails, SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount, SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount, SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount, SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount, SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount, SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount, MIN(eo.DateCreated) AS FirstEmailSent, MAX(eo.DateCreated) AS LastEmailSent FROM EmailTrigger et LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId WHERE et.IsActive = 1 GROUP BY et.Description ORDER BY et.Description"""
         
+        specific_campaign_example = """For specific campaign requests:
+SELECT et.Description AS StrategyName, COUNT(DISTINCT eo.EmailOutboxId) AS TotalEmails, SUM(CASE WHEN st.Status = 'delivered' THEN 1 ELSE 0 END) AS DeliveredCount, SUM(CASE WHEN st.Status IN ('bounced', 'failed') THEN 1 ELSE 0 END) AS BouncedCount, SUM(CASE WHEN st.Status = 'opened' THEN 1 ELSE 0 END) AS OpenedCount, SUM(CASE WHEN st.Status = 'clicked' THEN 1 ELSE 0 END) AS ClickedCount, SUM(CASE WHEN st.Status = 'complained' THEN 1 ELSE 0 END) AS ComplainedCount, SUM(CASE WHEN st.Status = 'unsubscribed' THEN 1 ELSE 0 END) AS UnsubscribedCount, MIN(eo.DateCreated) AS FirstEmailSent, MAX(eo.DateCreated) AS LastEmailSent FROM EmailTrigger et LEFT JOIN EmailOutbox_bak eo ON eo.CommunicationId = et.CommunicationId LEFT JOIN WebhookLogs_bak es ON eo.EmailOutboxId = es.EmailOutboxId LEFT JOIN EmailStatus st ON es.StatusId = st.StatusId WHERE et.IsActive = 1 AND et.Description = 'Past Due Maintenance Reminders' GROUP BY et.Description ORDER BY et.Description"""
+        
         return f"""You are an expert SQL assistant. Generate a SQL SELECT query to answer the user's request.
 
 CRITICAL REQUIREMENTS:
@@ -83,6 +86,16 @@ CRITICAL REQUIREMENTS:
 - Always include ORDER BY clause (required for pagination)
 - Do not include OFFSET/FETCH clauses (pagination will be added automatically)
 - Output ONLY the SQL query, no explanations
+
+IMPORTANT: Pay attention to specific campaign name requests:
+- If user mentions a specific campaign name like 'Past Due Maintenance Reminders', 'Lease Expiration', 'New Active Shopper', etc.: ADD 'AND et.Description = ''CampaignName''' to the WHERE clause
+- If user asks for 'campaign stats for X' or 'find X campaign' or 'show me X' or 'stats for X': ADD 'AND et.Description = ''X''' to filter by that specific campaign
+- Use EXACT match for campaign names, not LIKE or partial matching
+- Campaign names are case-sensitive, so match exactly as provided by user
+- EXAMPLES:
+  - "Find campaign stats for Past Due Maintenance Reminders" → ADD 'AND et.Description = ''Past Due Maintenance Reminders'''
+  - "Show me Lease Expiration campaign" → ADD 'AND et.Description = ''Lease Expiration'''
+  - "Stats for New Active Shopper" → ADD 'AND et.Description = ''New Active Shopper'''
 
 IMPORTANT: Pay attention to time-based requests:
 - If user mentions 'last month', 'past month': ADD 'AND eo.DateCreated >= DATEADD(month, -1, GETDATE())'
@@ -131,6 +144,9 @@ SCHEMA:
 
 EXAMPLE QUERY STRUCTURE:
 {example_sql}
+
+EXAMPLE FOR SPECIFIC CAMPAIGN:
+{specific_campaign_example}
 
 CONTEXT:
 {context}
